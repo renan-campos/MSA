@@ -36,6 +36,10 @@ from collections import defaultdict
 TRAIN_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'train')
 TEST_DIR  = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'test')
 
+#
+# data.train
+# data.test
+
 class Review:
   """
     Representation of a review file:
@@ -45,8 +49,8 @@ class Review:
   """
 
   def __init__(self, filename):
-    self.id   = filename.split(".")[0].split("_")[0]
-    self.rank = filename.split(".")[0].split("_")[1]
+    self.id   = os.path.basename(filename).split(".")[0].split("_")[0]
+    self.rank = os.path.basename(filename).split(".")[0].split("_")[1]
     self.file = filename
 
   def getText(self):
@@ -61,7 +65,7 @@ train = defaultdict(set)
 for type in ('pos', 'neg', 'unsup'):
   for file in os.listdir(os.path.join(TRAIN_DIR, type)):
     if file.endswith('txt'):
-     train[type].add(Review(file))
+     train[type].add(Review(os.path.join(TRAIN_DIR, type, file)))
 
 if not os.path.isdir(TEST_DIR):
   sys.stderr.write( \
@@ -72,5 +76,4 @@ test = defaultdict(set)
 for type in ('pos', 'neg'):
   for file in os.listdir(os.path.join(TEST_DIR, type)):
     if file.endswith('txt'):
-     test[type].add(Review(file))
-
+     test[type].add(Review(os.path.join(TEST_DIR, type, file)))
