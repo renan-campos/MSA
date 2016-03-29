@@ -17,12 +17,14 @@
 
 import sys
 
+from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import numpy as np
 
 from tokenizer import tokenize
 
 VECTORIZER = None
+DECTORIZER = None
 
 def set_vocab(docs, N, M):
   """
@@ -35,6 +37,7 @@ def set_vocab(docs, N, M):
   """
   
   global VECTORIZER
+  global DECTORIZER
 
   V =  CountVectorizer(preprocessor=(lambda x: x.getText()), tokenizer=tokenize)
 
@@ -60,7 +63,15 @@ def set_vocab(docs, N, M):
                                 preprocessor=(lambda x: x.getText()), 
                                 tokenizer=tokenize,
                                 vocabulary=vocab)
+  DECTORIZER = DictVectorizer()
+
   VECTORIZER.fit(docs)
+
+  dic = list()
+  for each in vocab:
+    dic.append({'S':each})
+
+  DECTORIZER.fit(dic)
 
 
 def tfidf_bow(doc):
@@ -73,6 +84,21 @@ def tfidf_bow(doc):
     sys.stderr.write("ERROR: Vectorizer not defined... Did you call set_vocab?\n")
     return None
   return VECTORIZER.transform([doc])
+
+def onehot_vecs(doc):
+  """
+    Takes a document and returns a list of one-hot vectors.
+  """
+  w = list()
+  for each in tokenize(doc.getText()):
+    w.append({'S':each})
+
+  D = DECTORIZER.transform(w)
+
+  return D
+
+
+
 
 def main():
   import data
@@ -87,7 +113,9 @@ def main():
   w = tfidf_bow(data.train['unsup'].pop())
   
   print VECTORIZER.get_feature_names()
-  print w.toarray()[0]
+  print w.toarray()
+
+  print onehot_vecs(data.train['unsup'].pop()).toarray()
 
 if __name__ == '__main__':
   main()

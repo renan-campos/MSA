@@ -61,19 +61,19 @@ if not os.path.isdir(TRAIN_DIR):
   "ERROR: Training directory not found. Please do the following:\n\
   \t$ cd data/\n\t$ bash download_data.sh\n")
   sys.exit(1)
-train = defaultdict(set)
+train = defaultdict(list)
 for type in ('pos', 'neg', 'unsup'):
   for file in os.listdir(os.path.join(TRAIN_DIR, type)):
     if file.endswith('txt'):
-     train[type].add(Review(os.path.join(TRAIN_DIR, type, file)))
+     train[type].append(Review(os.path.join(TRAIN_DIR, type, file)))
 
 if not os.path.isdir(TEST_DIR):
   sys.stderr.write( \
   "ERROR: Testing directory not found. Please do the following:\n\
   \t$ cd data/\n\t$ bash download_data.sh\n")
   sys.exit(1)
-test = defaultdict(set)
+test = defaultdict(list)
 for type in ('pos', 'neg'):
   for file in os.listdir(os.path.join(TEST_DIR, type)):
     if file.endswith('txt'):
-     test[type].add(Review(os.path.join(TEST_DIR, type, file)))
+     test[type].append(Review(os.path.join(TEST_DIR, type, file)))
