@@ -64,6 +64,15 @@ def E_all(R,thetas):
 
     return (-(numpy.dot(R_t,theta)))
 
+def phi(R,w):
+    """
+        selects column of R representing word vector of w by computing Rw.
+
+          w is a one-hot vector.
+    """
+
+    return numpy.dot(R,w)
+
 def E(w,theta,R):
     """
         generates energy of word.
