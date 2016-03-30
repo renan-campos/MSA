@@ -75,7 +75,7 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix=None):
+def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
     """
         TODO: make a latex file of derivation for peer review and add to repo. this notation is hard to read.
         TODO: I tested some examples by hand, it is possible there are some mistakes.
@@ -91,15 +91,15 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix=None):
 
             for each document (doc_k) and each word (w) in doc_k, sum the following:
 
-                (d/A[i,j] theta_k^T * phi_w + b_w) - (d/A[i,j] sum_of_w'_in_V(theta_k^T*phi_w' + b_w'))
+                (d/R[i,j] theta_k^T * phi_w + b_w) - (d/R[i,j] sum_of_w'_in_V(theta_k^T*phi_w' + b_w'))
 
                 for doc_k's theta vector (theta_k) if word's (w) col (j) matches col in (i,j) parameter then:
-                    (d/A[i,j] theta_k^T * phi_w + b_w) = i'th element of theta_k vector
+                    (d/R[i,j] theta_k^T * phi_w + b_w) = i'th element of theta_k vector
                 else:
-                    (d/A[i,j] theta_k^T * phi_w + b_w) = 0
+                    (d/R[i,j] theta_k^T * phi_w + b_w) = 0
 
-                (d/A[i,j] sum_of_w'_in_V(theta_k^T*phi_w' + b_w') =
-                    (1 / log(sum of -E(w')) * sum_of_all_words_w'_in_V(exp(-E(w')* (d/A[i,j] theta_k^T * phi_w' + b_w')))
+                (d/R[i,j] sum_of_w'_in_V(theta_k^T*phi_w' + b_w') =
+                    (1 / log(sum of -E(w')) * sum_of_all_words_w'_in_V(exp(-E(w')* (d/R[i,j] theta_k^T * phi_w' + b_w')))
 
         Did my best to vectorize the above derivation of the gradient.
     """
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     theta,R = create_parameters(1,2,2)
 
     # ex: creating an example frequence matrix
-    print gradient_wrt_R_ij(1,1,R,theta, numpy.array([[2,3],[1,0]]))
+    gradient_wrt_R_ij(1,1,R,theta,numpy.random.randn(2,2))
 
     pass
 
