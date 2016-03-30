@@ -74,9 +74,11 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-# TODO: currently verifying my vectorized implementation by hand....
 def gradient_wrt_R_ij(i,j,R,thetas):
     """
+        TODO: make a latex file of derivation for peer review and add to repo. this notation is hard to read.
+        TODO: I tested some examples by hand, it is possible there are some mistakes.
+
         computes gradient w.r.t (i,j) element within matrix R
 
         indices (i,j) are base 1
