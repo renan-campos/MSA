@@ -13,8 +13,13 @@
 
 """
 
+# TODO: need to fix memory issues
+
 import time
 import numpy
+
+B_t = None
+
 
 def create_parameters(vect_size,vocab_size,doc_count):
     """
@@ -58,6 +63,15 @@ def E_all(R,thetas):
 
     return (-(numpy.dot(R_t,theta)))
 
+def phi(R,w):
+    """
+        selects column of R representing word vector of w by computing Rw.
+
+          w is a one-hot vector.
+    """
+
+    return numpy.dot(R,w)
+
 def E(w,theta,R):
     """
         generates energy of word.
@@ -76,9 +90,13 @@ def E(w,theta,R):
     return (-(numpy.dot(phi,theta)))[0]
 
 def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
+
+    # TODO: compute gradient of documents one at a time. computing multiple at once is not practicle
+
     """
         TODO: make a latex file of derivation for peer review and add to repo. this notation is hard to read.
         TODO: I tested some examples by hand, it is possible there are some mistakes.
+        TODO: there are way too many files for what is here. need to do it all over again...
 
         freq_matrix should be a numpy matrix where the col represents the document and the row represents
         how many times a word occurs within the document.
@@ -104,12 +122,15 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
         Did my best to vectorize the above derivation of the gradient.
     """
 
+    global B_t
+
     i = i - 1
     j = j - 1
 
     # one hot matrix. B has all zero entries except at i,j
     # row = word_i, col = doc_k
-    B_t = numpy.zeros((R.shape[1],R.shape[0]))
+    if B_t is None:
+        B_t = numpy.zeros((R.shape[1],R.shape[0]))
     B_t[j][i] = 1
 
     # energies of words in vocbulary.
@@ -121,6 +142,8 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
 
     # vector of real-values
     coef = (1/numpy.log(numpy.sum(e_E,0)))
+
+    B_t[j][i] = 0
 
     return numpy.sum(numpy.sum((df_E - (coef * numpy.sum(e_E * df_E))) * freq_matrix))
 
@@ -135,11 +158,28 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
 
 if __name__ == "__main__":
 
-    # ex: create an R matrix of dimension 1 (+1) x 2 and create a theta matrix of size 1 (+1) x 2
-    theta,R = create_parameters(1,2,2)
+#    theta,R = create_parameters(20,50,100)
 
-    # ex: creating an example frequence matrix
-    gradient_wrt_R_ij(1,1,R,theta,numpy.random.randn(2,2))
+#    gradient_wrt_R_ij(1,1,R,theta,numpy.random.randn(50,100))
+
+    theta,R = create_parameters(50,5000,25000)
+
+    init_time = time.time()
+
+    print R.shape
+
+    freq_mat = numpy.random.randn(5000,25000)
+
+    for i in range(0,R.shape[0]):
+        i += 1
+        for j in range(0,R.shape[1]):
+
+            j += 1
+
+            # ex: creating an example frequence matrix
+            gradient_wrt_R_ij(i,j,R,theta,freq_mat)
+
+    print time.time() - init_time
 
     pass
 
