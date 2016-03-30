@@ -122,7 +122,7 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
     # vector of real-values
     coef = (1/numpy.log(numpy.sum(e_E,0)))
 
-    return numpy.sum(numpy.sum((df_E - coef * numpy.sum(e_E * df_E) * freq_matrix)))
+    return numpy.sum(numpy.sum((df_E - (coef * numpy.sum(e_E * df_E))) * freq_matrix))
 
 
 #def gradient_wrt_theta_k(j, ):
