@@ -17,7 +17,6 @@
 
 import time
 import numpy
-from scipy.sparse import *
 
 B_t = None
 
@@ -150,12 +149,9 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
 
 if __name__ == "__main__":
 
-    theta,R = create_parameters(20,50,100)
+#    theta,R = create_parameters(20,50,100)
 
-    gradient_wrt_R_ij(1,1,R,theta,numpy.random.randn(50,100))
-
-    exit()
-
+#    gradient_wrt_R_ij(1,1,R,theta,numpy.random.randn(50,100))
 
     theta,R = create_parameters(50,5000,25000)
 
@@ -163,7 +159,7 @@ if __name__ == "__main__":
 
     print R.shape
 
-    freq_mat = numpy.random.randn(5000,500)
+    freq_mat = numpy.random.randn(5000,25000)
 
     for i in range(0,R.shape[0]):
         i += 1
@@ -173,8 +169,6 @@ if __name__ == "__main__":
 
             # ex: creating an example frequence matrix
             gradient_wrt_R_ij(i,j,R,theta,freq_mat)
-
-            print i,j
 
     print time.time() - init_time
 
