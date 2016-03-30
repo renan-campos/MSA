@@ -13,6 +13,7 @@
 
 """
 
+import time
 import numpy
 
 def create_parameters(B,V,D):
@@ -74,10 +75,13 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-def gradient_wrt_R_ij(i,j,R,thetas):
+def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix=None):
     """
         TODO: make a latex file of derivation for peer review and add to repo. this notation is hard to read.
         TODO: I tested some examples by hand, it is possible there are some mistakes.
+
+        freq_matrix should be a numpy matrix where the col represents the document and the row represents
+        how many times a word occurs within the document.
 
         computes gradient w.r.t (i,j) element within matrix R
 
@@ -104,20 +108,21 @@ def gradient_wrt_R_ij(i,j,R,thetas):
     j = j - 1
 
     # one hot matrix. B has all zero entries except at i,j
-    B = numpy.zeros(R.shape)
-    B[i][j] = 1
-
     # row = word_i, col = doc_k
-    B_t = numpy.transpose(B)
+    B_t = numpy.zeros((R.shape[1],R.shape[0]))
+    B_t[j][i] = 1
 
-    # energies of words in a document.
+    # energies of words in vocbulary.
     # row = word_i, col = doc_k
     Energies = -E_all(R,thetas)
 
-    # vector of real-values
-    coef = (1 / numpy.log(numpy.sum(numpy.exp(Energies),0)))
+    e_E = numpy.exp(Energies)
+    df_E = numpy.dot(B_t,thetas)
 
-    return sum(sum(numpy.dot(B_t,thetas) - coef * sum(Energies * numpy.dot(B_t,thetas))))
+    # vector of real-values
+    coef = (1 / numpy.log(numpy.sum(e_E,0)))
+
+    return numpy.sum(numpy.sum((df_E - coef * numpy.sum(e_E * df_E) * freq_matrix)))
 
 
 #def gradient_wrt_theta_k(j, ):
@@ -130,18 +135,12 @@ def gradient_wrt_R_ij(i,j,R,thetas):
 
 if __name__ == "__main__":
 
+    # ex: create an R matrix of dimension 1 (+1) x 2 and create a theta matrix of size 1 (+1) x 2
     theta,R = create_parameters(1,2,2)
 
-#    print theta
-#    print R
-
-#    print E([0,1],theta,R)
-
-    print gradient_wrt_R_ij(1,1,R,theta)
+    # ex: creating an example frequence matrix
+    print gradient_wrt_R_ij(1,1,R,theta, numpy.array([[2,3],[1,0]]))
 
     pass
-
-
-
 
 
