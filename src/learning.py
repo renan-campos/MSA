@@ -16,25 +16,25 @@
 import time
 import numpy
 
-def create_parameters(B,V,D):
+def create_parameters(vect_size,vocab_size,doc_count):
     """
         creates a Gaussian Matrix with dimensions:
-            B+1: where B is the size of the word vector.
-            V  : is the size of the vocabulary of corpus.
+            vect_size+1: where vect_size is the size of the word vector.
+            vocab_size  : is the size of the vocabulary of corpus.
 
-        creates a theta Matrix of dimension B+1 x D, where B is the size of our word vector and
-        D is the number of documents. each document will have its own theta vector.
+        creates a theta Matrix of dimension vect_size+1 x doc_count, where vect_size is the size of our word vector and
+        doc_count is the number of documents. each document will have its own theta vector.
 
         a row constant of 1 is added to the theta matrix account for the bias within the R matrix.
     """
     # ***************************************************************************************************
     # ************NOTE: make sure we cut the bias off when computing final result...*********************
     # ***************************************************************************************************
-    R    = numpy.random.randn(B,V)
-    bias = numpy.random.randn(1,V)
+    R    = numpy.random.randn(vect_size,vocab_size)
+    bias = numpy.random.randn(1,vocab_size)
 
-    thetas = numpy.random.randn(B,D)
-    ones  = numpy.ones((1,D))
+    thetas = numpy.random.randn(vect_size,doc_count)
+    ones  = numpy.ones((1,doc_count))
 
     thetas = numpy.concatenate((ones,thetas))
     R     = numpy.concatenate((bias, R))
@@ -120,7 +120,7 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
     df_E = numpy.dot(B_t,thetas)
 
     # vector of real-values
-    coef = (1 / numpy.log(numpy.sum(e_E,0)))
+    coef = (1/numpy.log(numpy.sum(e_E,0)))
 
     return numpy.sum(numpy.sum((df_E - coef * numpy.sum(e_E * df_E) * freq_matrix)))
 
