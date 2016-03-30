@@ -15,7 +15,11 @@
 
 """
 
+import os
 import sys
+import dill as pickle
+
+TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp')
 
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -25,6 +29,37 @@ from tokenizer import tokenize
 
 VECTORIZER = None
 DECTORIZER = None
+
+def load_vecs():
+  """
+    Tries to load the vectorizers from pickled data.
+    Returns True on success, false on failure.
+  """
+  v_file = os.path.join(TMP_DIR, 'vectorizer.pickle')
+  d_file = os.path.join(TMP_DIR, 'dectorizer.pickle')
+
+  if os.path.isfile(v_file) and os.path.isfile(d_file):
+    with open(v_file, 'rb') as f:
+      VECTORIZER = pickle.load(f)
+    with open(d_file, 'rb') as f:
+      DECTORIZER = pickle.load(f)
+    return True
+
+  return False
+
+def dump_vecs():
+  """
+    Pickles VECTORIZER and DECTORIZER
+  """
+  v_file = os.path.join(TMP_DIR, 'vectorizer.pickle')
+  d_file = os.path.join(TMP_DIR, 'dectorizer.pickle')
+  
+  with open(v_file, 'wb') as f:
+    pickle.dump(VECTORIZER, f)
+  with open(d_file, 'wb') as f:
+    pickle.dump(DECTORIZER, f)
+ 
+
 
 def set_vocab(docs, N, M):
   """
