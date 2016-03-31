@@ -151,6 +151,9 @@ def gradient_R(R, thetas):
     import theano
     import theano.tensor as T
 
+    # TODO: better comments
+    # TODO: regularization
+
     theta = T.dmatrix('theta')
     _R = T.dmatrix('R')
 
