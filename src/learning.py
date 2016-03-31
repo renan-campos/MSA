@@ -158,10 +158,9 @@ def gradient_R(R, thetas):
     _R = T.dmatrix('R')
 
     # find f' where f = log(e^blah[x]/sum(e^blah[i], i))
-    E_w = T.dot(-theta.T, _R)
-    E_total = T.sum(T.exp(-E_w))
-    E_tv = E_w.fill(E_total)
-    probability = T.exp(E_w) / E_tv
+    E_w = T.dot(theta.T, _R)
+    E_total = T.sum(T.exp(E_w), 0)
+    probability = T.exp(E_w) / E_total
     cost = T.sum(T.log(probability))
 
     grad = T.grad(cost, _R)
