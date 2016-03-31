@@ -147,6 +147,24 @@ def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
 
     return numpy.sum(numpy.sum((df_E - (coef * numpy.sum(e_E * df_E))) * freq_matrix))
 
+def gradient_R(R, thetas):
+    import theano
+    import theano.tensor as T
+
+    theta = T.dmatrix('theta')
+    _R = T.dmatrix('R')
+
+    # find f' where f = log(e^blah[x]/sum(e^blah[i], i))
+    E_w = T.dot(-theta.T, _R)
+    E_total = T.sum(T.exp(-E_w))
+    E_tv = E_w.fill(E_total)
+    probability = T.exp(E_w) / E_tv
+    cost = T.sum(T.log(probability))
+
+    grad = T.grad(cost, _R)
+
+    dcostdR = theano.function([theta, _R], grad)
+    print dcostdR(thetas, R)
 
 #def gradient_wrt_theta_k(j, ):
 #    """
@@ -162,22 +180,25 @@ if __name__ == "__main__":
 
 #    gradient_wrt_R_ij(1,1,R,theta,numpy.random.randn(50,100))
 
-    theta,R = create_parameters(50,5000,25000)
+    theta,R = create_parameters(50,5000,75000)
 
     init_time = time.time()
 
     print R.shape
+    print theta.shape
 
-    freq_mat = numpy.random.randn(5000,25000)
+    print gradient_R(R, theta)
 
-    for i in range(0,R.shape[0]):
-        i += 1
-        for j in range(0,R.shape[1]):
+    # freq_mat = numpy.random.randn(5000,25000)
 
-            j += 1
+    # for i in range(0,R.shape[0]):
+    #     i += 1
+    #     for j in range(0,R.shape[1]):
 
-            # ex: creating an example frequence matrix
-            gradient_wrt_R_ij(i,j,R,theta,freq_mat)
+    #         j += 1
+
+    #         # ex: creating an example frequence matrix
+    #         gradient_wrt_R_ij(i,j,R,theta,freq_mat)
 
     print time.time() - init_time
 
