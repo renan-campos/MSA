@@ -110,7 +110,6 @@ def gradient_R(R, thetas):
     E_total = T.sum(T.exp(E_w), 0)
 
     # compute probabilities for each word in their repsetive document
-    # TODO: should be T.exp(-E_w)? unless we remove negative sign on line 104?
     probability = T.exp(E_w) / E_total
 
     # computes cost for each document
@@ -127,7 +126,11 @@ def gradient_R(R, thetas):
 
 if __name__ == "__main__":
 
-    theta,R = create_parameters(50,5000,75000)
+    # large example. should work!
+    # theta,R = create_parameters(50,5000,75000)
+
+    # smaller dev example
+    theta,R = create_parameters(2,2,2)
 
     init_time = time.time()
 
