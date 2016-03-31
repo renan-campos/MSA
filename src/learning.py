@@ -17,6 +17,8 @@
 
 import time
 import numpy
+import theano
+import theano.tensor as T
 
 B_t = None
 
@@ -89,116 +91,49 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-def gradient_wrt_R_ij(i,j,R,thetas,freq_matrix):
-
-    # TODO: compute gradient of documents one at a time. computing multiple at once is not practicle
-
-    """
-        TODO: make a latex file of derivation for peer review and add to repo. this notation is hard to read.
-        TODO: I tested some examples by hand, it is possible there are some mistakes.
-        TODO: there are way too many files for what is here. need to do it all over again...
-
-        freq_matrix should be a numpy matrix where the col represents the document and the row represents
-        how many times a word occurs within the document.
-
-        computes gradient w.r.t (i,j) element within matrix R
-
-        indices (i,j) are base 1
-
-        gradient is of the form:
-
-            for each document (doc_k) and each word (w) in doc_k, sum the following:
-
-                (d/R[i,j] theta_k^T * phi_w + b_w) - (d/R[i,j] sum_of_w'_in_V(theta_k^T*phi_w' + b_w'))
-
-                for doc_k's theta vector (theta_k) if word's (w) col (j) matches col in (i,j) parameter then:
-                    (d/R[i,j] theta_k^T * phi_w + b_w) = i'th element of theta_k vector
-                else:
-                    (d/R[i,j] theta_k^T * phi_w + b_w) = 0
-
-                (d/R[i,j] sum_of_w'_in_V(theta_k^T*phi_w' + b_w') =
-                    (1 / log(sum of -E(w')) * sum_of_all_words_w'_in_V(exp(-E(w')* (d/R[i,j] theta_k^T * phi_w' + b_w')))
-
-        Did my best to vectorize the above derivation of the gradient.
-    """
-
-    global B_t
-
-    i = i - 1
-    j = j - 1
-
-    # one hot matrix. B has all zero entries except at i,j
-    # row = word_i, col = doc_k
-    if B_t is None:
-        B_t = numpy.zeros((R.shape[1],R.shape[0]))
-    B_t[j][i] = 1
-
-    # energies of words in vocbulary.
-    # row = word_i, col = doc_k
-    Energies = -E_all(R,thetas)
-
-    e_E = numpy.exp(Energies)
-    df_E = numpy.dot(B_t,thetas)
-
-    # vector of real-values
-    coef = (1/numpy.log(numpy.sum(e_E,0)))
-
-    B_t[j][i] = 0
-
-    return numpy.sum(numpy.sum((df_E - (coef * numpy.sum(e_E * df_E))) * freq_matrix))
-
 def gradient_R(R, thetas):
-    import theano
-    import theano.tensor as T
 
     theta = T.dmatrix('theta')
     _R = T.dmatrix('R')
 
     # find f' where f = log(e^blah[x]/sum(e^blah[i], i))
+
+    # obtain energies of word per document
+    # row represents current document.
+    # col represents word
+    # TODO: can we just remove the negative signs on line 105 and 109? should just cancel?
     E_w = T.dot(-theta.T, _R)
+
+    # sum the columns of above matrix together
+    # obtains a vector which is the denominator of the softmax function for each doc
     E_total = T.sum(T.exp(-E_w))
+
+    # TODO: why do we need this. is E_total not the same thing?
     E_tv = E_w.fill(E_total)
+
+    # compute probabilities for each word in their repsetive document
+    # TODO: should be T.exp(-E_w)? unless we remove negative sign on line 104?
     probability = T.exp(E_w) / E_tv
+
+    # computes cost for each document
+    # TODO: we need to multiply by a frequency matrix. because we don't account for how many times a word occurs in a doc
+    # we just assume once for now.
     cost = T.sum(T.log(probability))
 
+    # compute gradient of each document wrt each element in R
     grad = T.grad(cost, _R)
 
     dcostdR = theano.function([theta, _R], grad)
-    print dcostdR(thetas, R)
 
-#def gradient_wrt_theta_k(j, ):
-#    """
-#        computes gradient w.r.t theta_j element within theta vector document.
-#    """
-
-#    if
-
+    return dcostdR(thetas, R)
 
 if __name__ == "__main__":
-
-#    theta,R = create_parameters(20,50,100)
-
-#    gradient_wrt_R_ij(1,1,R,theta,numpy.random.randn(50,100))
 
     theta,R = create_parameters(50,5000,75000)
 
     init_time = time.time()
 
-    print R.shape
-    print theta.shape
-
     print gradient_R(R, theta)
-
-    # freq_mat = numpy.random.randn(5000,25000)
-
-    # for i in range(0,R.shape[0]):
-    #     i += 1
-    #     for j in range(0,R.shape[1]):
-
-    #         j += 1
-
-    #         # ex: creating an example frequence matrix
-    #         gradient_wrt_R_ij(i,j,R,theta,freq_mat)
 
     print time.time() - init_time
 
