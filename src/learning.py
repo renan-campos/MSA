@@ -91,7 +91,7 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-def gradient_R(R, thetas, wrt):
+def gradient(R, thetas, wrt):
     """
         finds the gradient of the cost function with respect to parameter specified in wrt
     """
@@ -120,8 +120,14 @@ def gradient_R(R, thetas, wrt):
     # we just assume once for now.
     cost = T.sum(T.log(probability))
 
-    # compute gradient of each document wrt each element in R
-    grad = T.grad(cost, _R)
+    # compute gradient of each document wrt each element in the specified variable (R or theta)
+    if wrt is "R":
+        grad = T.grad(cost, _R)
+    elif wrt is "theta":
+        grad = T.grad(cost, theta)
+    else:
+        print "ERROR: Gradient cannot be computed with respect to %s" % wrt
+        exit(1)
 
     dcostdR = theano.function([theta, _R], grad)
 
@@ -130,19 +136,29 @@ def gradient_R(R, thetas, wrt):
 if __name__ == "__main__":
 
     # large example. should work!
-    theta,R = create_parameters(50,5000,75000)
+    # theta,R = create_parameters(50,5000,75000)
 
     # smaller dev example
-    # theta,R = create_parameters(2,5,20)
+    theta,R = create_parameters (2,5,20)
 
     init_time = time.time()
 
-    out = gradient_R(R, theta)
+    out = gradient(R, theta, "R")
 
+    print "Gradient of R: "
     print out
     print out.shape
     print R.shape
+    print time.time() - init_time
 
+    init_time = time.time()
+
+    out = gradient(R, theta, "theta")
+
+    print "Gradient of theta: "
+    print out
+    print out.shape
+    print theta.shape
     print time.time() - init_time
 
     pass
