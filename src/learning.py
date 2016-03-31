@@ -104,12 +104,12 @@ def gradient_R(R, thetas):
     # obtain energies of word per document
     # row represents current document.
     # col represents word
-    # TODO: can we just remove the negative signs on line 105 and 109? should just cancel?
-    E_w = T.dot(-theta.T, _R)
+    # we premptively remove the negative sign (-) because it cancels out.
+    E_w = T.dot(theta.T, _R)
 
     # sum the columns of above matrix together
     # obtains a vector which is the denominator of the softmax function for each doc
-    E_total = T.sum(T.exp(-E_w))
+    E_total = T.sum(T.exp(E_w))
 
     # TODO: why do we need this. is E_total not the same thing?
     E_tv = E_w.fill(E_total)
