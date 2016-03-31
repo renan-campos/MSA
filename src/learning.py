@@ -93,8 +93,9 @@ def E(w,theta,R):
 
 def gradient_R(R, thetas):
 
-    # TODO: better comments
     # TODO: regularization
+    # TODO: compute gradient wrt theta
+    # TODO: compute sentiment vectors
 
     theta = T.dmatrix('theta')
     _R = T.dmatrix('R')
