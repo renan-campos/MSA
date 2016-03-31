@@ -93,6 +93,9 @@ def E(w,theta,R):
 
 def gradient_R(R, thetas):
 
+    # TODO: better comments
+    # TODO: regularization
+
     theta = T.dmatrix('theta')
     _R = T.dmatrix('R')
 
