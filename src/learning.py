@@ -91,7 +91,7 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-def gradient(R, thetas, wrt):
+def gradient(R, thetas, freq, wrt):
     """
         finds the gradient of the cost function with respect to parameter specified in wrt
     """
@@ -101,6 +101,7 @@ def gradient(R, thetas, wrt):
 
     theta = T.dmatrix('theta')
     _R = T.dmatrix('R')
+    frequency = T.dmatrix('frequency')
 
     # obtain energies of word per document
     # row represents current document.
@@ -115,12 +116,19 @@ def gradient(R, thetas, wrt):
     # compute probabilities for each word in their repsetive document
     probability = E_w.T / E_total
 
-    # computes cost for each document
-    # TODO: we need to multiply by a frequency matrix. because we don't account for how many times a word occurs in a doc
+    # take the log of the probability before multiplying by frequency
+    log_prob = T.log(probability)
+
+    # multiply by frequency to account multiple occurances of the same owrd, and words that
+    # do not appear
+    weighted_prob = log_prob * frequency
+
+    # computes total cost for all document
     # we just assume once for now.
-    cost = T.sum(T.log(probability))
+    cost = T.sum(weighted_prob)
 
     # compute gradient of each document wrt each element in the specified variable (R or theta)
+    # TODO: splice out bias term when computing gradient of theta
     if wrt is "R":
         grad = T.grad(cost, _R)
     elif wrt is "theta":
@@ -129,21 +137,25 @@ def gradient(R, thetas, wrt):
         print "ERROR: Gradient cannot be computed with respect to %s" % wrt
         exit(1)
 
-    dcostdR = theano.function([theta, _R], grad)
+    dcostdR = theano.function([theta, _R, frequency], grad)
 
-    return dcostdR(thetas, R)
+    return dcostdR(thetas, R, freq)
 
 if __name__ == "__main__":
 
     # large example. should work!
+    # freq = numpy.random.randn(5000,75000)
     # theta,R = create_parameters(50,5000,75000)
 
     # smaller dev example
-    theta,R = create_parameters (2,5,20)
+    freq = numpy.random.randn(2,2)
+    theta,R = create_parameters (2,2,2)
+
+    # freq = numpy.array([[0,5],[2,3]])
 
     init_time = time.time()
 
-    out = gradient(R, theta, "R")
+    out = gradient(R, theta, freq, "R")
 
     print "Gradient of R: "
     print out
@@ -153,7 +165,7 @@ if __name__ == "__main__":
 
     init_time = time.time()
 
-    out = gradient(R, theta, "theta")
+    out = gradient(R, theta, freq, "theta")
 
     print "Gradient of theta: "
     print out
