@@ -91,8 +91,10 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-def gradient_R(R, thetas):
-
+def gradient_R(R, thetas, wrt):
+    """
+        finds the gradient of the cost function with respect to parameter specified in wrt
+    """
     # TODO: regularization
     # TODO: compute gradient wrt theta
     # TODO: compute sentiment vectors
@@ -104,14 +106,14 @@ def gradient_R(R, thetas):
     # row represents current document.
     # col represents word
     # we premptively remove the negative sign (-) because it cancels out.
-    E_w = T.dot(theta.T, _R)
+    E_w = T.exp(T.dot(theta.T, _R))
 
     # sum the columns of above matrix together
     # obtains a vector which is the denominator of the softmax function for each doc
-    E_total = T.sum(T.exp(E_w), 0)
+    E_total = T.sum(E_w, 1)
 
     # compute probabilities for each word in their repsetive document
-    probability = T.exp(E_w) / E_total
+    probability = E_w.T / E_total
 
     # computes cost for each document
     # TODO: we need to multiply by a frequency matrix. because we don't account for how many times a word occurs in a doc
@@ -128,14 +130,18 @@ def gradient_R(R, thetas):
 if __name__ == "__main__":
 
     # large example. should work!
-    # theta,R = create_parameters(50,5000,75000)
+    theta,R = create_parameters(50,5000,75000)
 
     # smaller dev example
-    theta,R = create_parameters(2,2,2)
+    # theta,R = create_parameters(2,5,20)
 
     init_time = time.time()
 
-    print gradient_R(R, theta)
+    out = gradient_R(R, theta)
+
+    print out
+    print out.shape
+    print R.shape
 
     print time.time() - init_time
 
