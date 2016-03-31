@@ -108,6 +108,7 @@ def gradient_R(R, thetas):
 
     # sum the columns of above matrix together
     # obtains a vector which is the denominator of the softmax function for each doc
+    # TODO: should be 1 not 0???
     E_total = T.sum(T.exp(E_w), 0)
 
     # compute probabilities for each word in their repsetive document
