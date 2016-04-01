@@ -95,9 +95,16 @@ def gradient(R, thetas, freq, wrt):
     """
         finds the gradient of the cost function with respect to parameter specified in wrt
     """
-    # TODO: regularization
-    # TODO: compute gradient wrt theta
-    # TODO: compute sentiment vectors
+
+    # important:
+
+        # TODO: regularization
+        # TODO: compute sentiment vectors
+
+    # less important:
+
+        # TODO: figure out how to reduce memory consumption
+
 
     theta = T.dmatrix('theta')
     _R = T.dmatrix('R')
@@ -139,19 +146,28 @@ def gradient(R, thetas, freq, wrt):
 
     dcostdR = theano.function([theta, _R, frequency], grad)
 
-    return dcostdR(thetas, R, freq)
+    # leave as is
+    if wrt == "R":
+        return dcostdR(thetas, R, freq)
+    else:
+        theta_grad = dcostdR(thetas, R, freq)
+
+        # don't want to update the first row of the theta matrix
+        mask = numpy.concatenate((numpy.zeros((1,theta_grad.shape[1])),
+                                  numpy.ones((theta_grad.shape[0]-1,theta_grad.shape[1]))))
+
+        return theta_grad * mask
+
 
 if __name__ == "__main__":
 
     # large example. should work!
-    # freq = numpy.random.randn(5000,75000)
-    # theta,R = create_parameters(50,5000,75000)
+    #freq = numpy.random.randn(5000,75000)
+    #theta,R = create_parameters(50,5000,75000)
 
     # smaller dev example
     freq = numpy.random.randn(2,2)
     theta,R = create_parameters (2,2,2)
-
-    # freq = numpy.array([[0,5],[2,3]])
 
     init_time = time.time()
 
