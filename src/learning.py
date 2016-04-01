@@ -100,6 +100,7 @@ def gradient(R, thetas, freq, wrt):
 
         # TODO: regularization
         # TODO: compute sentiment vectors
+        # TODO: make thetas and R shared variables so they can be recomputed for N iterations
 
     # less important:
 
