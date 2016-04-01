@@ -91,7 +91,7 @@ def E(w,theta,R):
 
     return (-(numpy.dot(phi,theta)))[0]
 
-def gradient(R, thetas, freq, wrt):
+def gradient(R, thetas, freq, wrt, theta_reg_weight=.01, frobenius_reg_weight=.01):
     """
         finds the gradient of the cost function with respect to parameter specified in wrt
     """
@@ -106,6 +106,8 @@ def gradient(R, thetas, freq, wrt):
 
         # TODO: figure out how to reduce memory consumption
 
+    _theta_reg_weight = T.scalar("theta_reg_weight")
+    _frobenius_reg_weight = T.scalar("frobenius_reg_weight")
 
     theta = T.dmatrix('theta')
     _R = T.dmatrix('R')
@@ -131,9 +133,20 @@ def gradient(R, thetas, freq, wrt):
     # do not appear
     weighted_prob = log_prob * frequency
 
+    # the paper says that for each doc you take the theta_k
+    # vector and compute the euclidean norm and square that.
+    # so what we are calculating is the sum of the square of each vector element
+    # since we are doing this for each document and addition is commutative
+    # I've brought the regularization term out front.
+    theta_reg = _theta_reg_weight * theano.tensor.sum(theano.tensor.pow(theta,2))
+
+    # the frobenius norm is just the summation of the square of all of the elements in a matrix
+    # since we are squaring this norm and because addition is commutative we can just do an element
+    # wise squaring and thne just add all of teh elements
+    frobenius_reg = _frobenius_reg_weight * theano.tensor.sum(theano.tensor.pow(_R,2))
+
     # computes total cost for all document
-    # we just assume once for now.
-    cost = T.sum(weighted_prob)
+    cost = frobenius_reg + theta_reg + T.sum(weighted_prob)
 
     # compute gradient of each document wrt each element in the specified variable (R or theta)
     # TODO: splice out bias term when computing gradient of theta
@@ -145,13 +158,13 @@ def gradient(R, thetas, freq, wrt):
         print "ERROR: Gradient cannot be computed with respect to %s" % wrt
         exit(1)
 
-    dcostdR = theano.function([theta, _R, frequency], grad)
+    dcostdR = theano.function([theta, _R, frequency, _theta_reg_weight, _frobenius_reg_weight], grad)
 
     # leave as is
     if wrt == "R":
-        return dcostdR(thetas, R, freq)
+        return dcostdR(thetas, R, freq, theta_reg_weight, frobenius_reg_weight)
     else:
-        theta_grad = dcostdR(thetas, R, freq)
+        theta_grad = dcostdR(thetas, R, freq, theta_reg_weight, frobenius_reg_weight)
 
         # don't want to update the first row of the theta matrix
         mask = numpy.concatenate((numpy.zeros((1,theta_grad.shape[1])),
@@ -163,12 +176,12 @@ def gradient(R, thetas, freq, wrt):
 if __name__ == "__main__":
 
     # large example. should work!
-    #freq = numpy.random.randn(5000,75000)
-    #theta,R = create_parameters(50,5000,75000)
+    freq = numpy.random.randn(5000,75000)
+    theta,R = create_parameters(50,5000,75000)
 
     # smaller dev example
-    freq = numpy.random.randn(2,2)
-    theta,R = create_parameters (2,2,2)
+    #freq = numpy.random.randn(2,2)
+    #theta,R = create_parameters (2,2,2)
 
     init_time = time.time()
 
