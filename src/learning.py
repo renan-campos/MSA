@@ -138,12 +138,12 @@ def gradient(R, thetas, freq, wrt, theta_reg_weight=.01, frobenius_reg_weight=.0
     # so what we are calculating is the sum of the square of each vector element
     # since we are doing this for each document and addition is commutative
     # I've brought the regularization term out front.
-    theta_reg = _theta_reg_weight * T.sqrt(T.sum(theano.tensor.pow(theta,2)))
+    theta_reg = _theta_reg_weight * T.sum(theano.tensor.pow(theta,2))
 
     # the frobenius norm is just the summation of the square of all of the elements in a matrix
     # since we are squaring this norm and because addition is commutative we can just do an element
     # wise squaring and thne just add all of teh elements
-    frobenius_reg = _frobenius_reg_weight * T.sqrt(T.sum(theano.tensor.pow(_R,2)))
+    frobenius_reg = _frobenius_reg_weight * T.sum(theano.tensor.pow(_R,2))
 
     # computes total cost for all document
     cost = frobenius_reg + theta_reg + T.sum(weighted_prob)
