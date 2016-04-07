@@ -138,12 +138,12 @@ def gradient(R, thetas, freq, wrt, theta_reg_weight=.01, frobenius_reg_weight=.0
     # so what we are calculating is the sum of the square of each vector element
     # since we are doing this for each document and addition is commutative
     # I've brought the regularization term out front.
-    theta_reg = _theta_reg_weight * theano.tensor.sum(theano.tensor.pow(theta,2))
+    theta_reg = _theta_reg_weight * T.sqrt(T.sum(theano.tensor.pow(theta,2)))
 
     # the frobenius norm is just the summation of the square of all of the elements in a matrix
     # since we are squaring this norm and because addition is commutative we can just do an element
     # wise squaring and thne just add all of teh elements
-    frobenius_reg = _frobenius_reg_weight * theano.tensor.sum(theano.tensor.pow(_R,2))
+    frobenius_reg = _frobenius_reg_weight * T.sqrt(T.sum(theano.tensor.pow(_R,2)))
 
     # computes total cost for all document
     cost = frobenius_reg + theta_reg + T.sum(weighted_prob)
@@ -176,12 +176,15 @@ def gradient(R, thetas, freq, wrt, theta_reg_weight=.01, frobenius_reg_weight=.0
 if __name__ == "__main__":
 
     # large example. should work!
-    freq = numpy.random.randn(5000,75000)
-    theta,R = create_parameters(50,5000,75000)
+    freq = numpy.random.randn(5000,25000)
+    theta,R = create_parameters(50,5000,25000)
 
     # smaller dev example
-    #freq = numpy.random.randn(2,2)
-    #theta,R = create_parameters (2,2,2)
+    # freq = numpy.random.randn(2,2)
+    # theta,R = create_parameters (2,2,2)
+
+    print "R.shape: ", R.shape
+    print "theta.shape: ", theta.shape
 
     init_time = time.time()
 
@@ -189,9 +192,8 @@ if __name__ == "__main__":
 
     print "Gradient of R: "
     print out
-    print out.shape
-    print R.shape
-    print time.time() - init_time
+    # print out.shape
+    print "Time elapsed: ", time.time() - init_time
 
     init_time = time.time()
 
@@ -199,9 +201,8 @@ if __name__ == "__main__":
 
     print "Gradient of theta: "
     print out
-    print out.shape
-    print theta.shape
-    print time.time() - init_time
+    # print out.shape
+    print "Time elapsed: ", time.time() - init_time
 
     pass
 
