@@ -120,19 +120,19 @@ def tfidf_bow(doc):
   if VECTORIZER == None:
     sys.stderr.write("ERROR: Vectorizer not defined... Did you call set_vocab?\n")
     return None
-  return VECTORIZER.transform([doc])
+  return VECTORIZER.transform([doc]).toarray()
 
 def bow_vec(doc):
   """
     Takes a document and returns a vector of frequencies
   """
-  return CECTORIZER.transform([doc])
+  return CECTORIZER.transform([doc]).toarray()
 
 def bow_vecs(docs):
   """
     Takes a list of documents and returns a Term x Document matrix.
   """
-  return CECTORIZER.transform(docs)
+  return CECTORIZER.transform(docs).toarray()
 
 def main():
   import data
@@ -144,14 +144,14 @@ def main():
   # Set the vocab to be the 5 most frequent words (ignoring first 10)
   set_vocab(X, 20, 5)
 
-  w = tfidf_bow(data.train['unsup'].pop())
   
   print VECTORIZER.get_feature_names()
-  print w.toarray()
+  print tfidf_bow(data.train['unsup'].pop())
 
-  print bow_vec(data.train['unsup'].pop()).toarray()
+  print bow_vec(data.train['unsup'].pop())
 
-  print bow_vecs(X).toarray()
+  print bow_vecs(set(X))
+  print set(X)
 
 if __name__ == '__main__':
   main()
