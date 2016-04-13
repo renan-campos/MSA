@@ -49,7 +49,7 @@ def create_parameters(vect_size,vocab_size,doc_count):
 
     for i in range(vocab_size):
 
-        v = numpy.random.randn(vect_size+1,1)
+        v = numpy.random.normal(size=(vect_size+1,1), loc=0.0, scale=.01)
         v /= numpy.linalg.norm(v)
 
         if R is None:
@@ -63,7 +63,7 @@ def create_parameters(vect_size,vocab_size,doc_count):
 
     for i in range(doc_count):
 
-        dk = numpy.random.randn(vect_size,1)
+        dk = numpy.random.normal(size=(vect_size,1), loc=0.0, scale=.01)
         dk /= numpy.linalg.norm(dk)
 
         if thetas is None:
@@ -151,27 +151,111 @@ def get_gradient_funcs():
 
     return dcostdR, dcostdtheta
 
+
+def update_parameters(thetas,freq,theta_partitions, freq_partitions, partitioned_inds):
+    """
+    TODO: implement an update that only updates partitioned_columns
+    """
+    pass
+
+
+def partition_data(thetas, freq, partition_size=200):
+
+    num_docs = freq.shape[1]
+
+    # indices of columns to select.
+    column_indx = range(0,num_docs)
+
+    start = 0
+    end   = partition_size
+
+    # need these for performing updates
+    partitioned_inds = []
+
+    # partitioned input.
+    theta_partitions = []
+    freq_partitions  = []
+
+    while True:
+
+        # inplace shuffling of col indices to select
+        random.shuffle(column_indx)
+
+        # get partition of indices
+        partition = column_indx[start:end]
+
+        # nothing in partition
+        if len(partition) == 0:
+            break
+
+        theta_partition = None
+        freq_partition  = None
+
+        # select appropriate columns from theta and freq documents and place into partition
+        for i in partition:
+
+            c = theta[:,i]
+            c = c.reshape(c.shape[0],1)
+
+            # partition theta columns
+            if theta_partition is None:
+                theta_partition = c
+            else:
+                theta_partition = numpy.concatenate((theta_partition,c), axis=1)
+
+            c = freq[:,i]
+            c = c.reshape(c.shape[0],1)
+
+            # partition freq columns
+            if freq_partition is None:
+                freq_partition = c
+            else:
+                freq_partition = numpy.concatenate((freq_partition,c), axis=1)
+
+        partitioned_inds.append(partition)
+        theta_partitions.append(theta_partition)
+        freq_partitions.append(freq_partition)
+
+        start = end
+        end += partition_size
+
+
+    return theta_partitions, freq_partitions, partitioned_inds
+
+
 def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=.0001, theta_reg_weight=.001, frobenius_reg_weight=.001):
+
+
+    # i assume that each freq col has a corresponding theta col
+    # partition_data(thetas, freq)
+
 
     # TODO: works for small data set ~1000 files. needs to be changed to stochastic gradient descent to handle
     # larger datasets (25000?)
+
+    R_iterations = 100
+    converges = lambda x1, x2: abs(x1 - x2) <= .01
 
     # theano functions to compute gradients
     get_dcostdR, get_dcostdtheta = get_gradient_funcs()
 
     for j in range(iterations):
 
+        print "iteration: {}".format(j)
+
         # needs more time to converge. so there is a limit to iterations. the idea is to
         # get to correct the thetas quicker to get R converging.
         old_cost = None
-        for i in range(100):
+        for i in range(R_iterations):
             cost, grad_wrt_R = get_dcostdR(R, thetas, freq, theta_reg_weight, frobenius_reg_weight)
+
+            print cost
 
             R += learning_rate * grad_wrt_R
 
             if old_cost is None:
                 old_cost = cost
-            elif abs(old_cost - cost) <= .001:
+            elif converges(old_cost, cost):
                 break
             else:
                 print "change in cost wrt R: ", abs(old_cost - cost)
@@ -191,7 +275,7 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=.0001, theta_
 
             if old_cost is None:
                 old_cost = cost
-            elif abs(old_cost - cost) <= .001:
+            elif converges(old_cost, cost):
                 break
             else:
                 print "change in cost wrt theta: ", abs(old_cost - cost)
@@ -199,14 +283,19 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=.0001, theta_
 
 if __name__ == "__main__":
 
+    partition_data()
+
     # large example. should work!
-    freq = numpy.random.randint(low=0,high=10,size=(5000,1000))
-    theta,R = create_parameters(50,5000,1000)
+#    freq = numpy.random.randint(low=0,high=10,size=(5000,1000))
+#    theta,R = create_parameters(50,5000,1000)
+
+#    freq = numpy.random.randint(low=0,high=10,size=(5000,25000))
+#    theta,R = create_parameters(50,5000,25000)
 
     #freq = numpy.random.randint(low=0,high=10,size=(5,5))
     #theta,R = create_parameters(5,5,5)
 
-    gradient_ascent(R.astype('float32'), theta.astype('float32'), freq.astype('float32'))
+#    gradient_ascent(R.astype('float32'), theta.astype('float32'), freq.astype('float32'))
     # out = gradient(R.astype('float32'), theta.astype('float32'), freq.astype('float32'), "theta")
 
 
