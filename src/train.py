@@ -36,8 +36,8 @@ ITER = 5
 LAMBDA = 0.001
 
 # NOTE: Delete pickled vectorizers after changing these
-VOCAB  = 6
-IGNORE = 5
+VOCAB  = 5000
+IGNORE = 50
 
 def main():
   training_set = data.train['unsup'] + data.train['pos'] + data.train['neg']
@@ -49,22 +49,21 @@ def main():
   %d unannoteded reviews" % (len(data.train['pos']), 
                              len(data.train['neg']), 
                              len(data.train['unsup']))
-  d = list()
-  for doc in training_set:
-    d.append(doc)
-    if len(d) > 5:
-      break
-  training_set = d
-  
+#  d = list()
+#  for doc in training_set:
+#    d.append(doc)
+#    if len(d) > 5:
+#      break
+#  training_set = d
 
   # Create the vectorizer that builds a vector representation of the data.
   #if not vectorizer.load_vecs():
   vectorizer.set_vocab(training_set, VOCAB, IGNORE)
-  #vectorizer.dump_vecs()
+  vectorizer.dump_vecs()
 
   freqs = vectorizer.bow_vecs(training_set)
   
-  #TODO Train the R vector
+  # Train the R vector
   thetas,R = learning.create_parameters(BETA, VOCAB, len(training_set))
 
   # Performing Alternating descent
@@ -81,11 +80,9 @@ def main():
   for review in data.train['pos']:
     X.append(learning.phi(R[1:], vectorizer.tfidf_bow(review).T).flatten())
     Y.append(POS)
-    break
   for review in data.train['neg']:
     X.append(learning.phi(R[1:], vectorizer.tfidf_bow(review).T).flatten())
     Y.append(NEG)
-    break
 
   X = np.array(X)
 
@@ -96,6 +93,9 @@ def main():
   # Pickle svm to file
   with open(os.path.join(TMP_DIR, 'svm.pickle'), 'wb') as f:
     pickle.dump(clf, f)
+  # Pickle R matrix to file
+  with open(os.path.join(TMP_DIR, 'R.pickle'), 'wb') as f:
+    pickle.dump(R, f)
 
 if __name__ == '__main__':
   main()
