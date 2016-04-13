@@ -20,8 +20,14 @@ import numpy
 import theano
 import theano.tensor as T
 
-B_t = None
+import random
 
+theano.config.gcc.cxxflags += " -O3 -ffast-math -ftree-loop-distribution -funroll-loops -ftracer"
+theano.config.allow_gc=False
+theano.config.floatX='float32'
+
+# set OMP_NUM_THREADS to 10+ for more threads to speed up computations
+theano.config.openmp = True
 
 def create_parameters(vect_size,vocab_size,doc_count):
     """
@@ -37,33 +43,37 @@ def create_parameters(vect_size,vocab_size,doc_count):
     # ***************************************************************************************************
     # ************NOTE: make sure we cut the bias off when computing final result...*********************
     # ***************************************************************************************************
-    R    = numpy.random.randn(vect_size,vocab_size)
-    bias = numpy.random.randn(1,vocab_size)
 
-    thetas = numpy.random.randn(vect_size,doc_count)
+    # tried to reduce range of init values. didn't work...
+    R = None
+
+    for i in range(vocab_size):
+
+        v = numpy.random.randn(vect_size+1,1)
+        v /= numpy.linalg.norm(v)
+
+        if R is None:
+            R = v
+        else:
+            R = numpy.concatenate((R,v),axis=1)
+
+    # create theta vector for each doc
+    thetas = None
     ones  = numpy.ones((1,doc_count))
 
+    for i in range(doc_count):
+
+        dk = numpy.random.randn(vect_size,1)
+        dk /= numpy.linalg.norm(dk)
+
+        if thetas is None:
+            thetas = dk
+        else:
+            thetas = numpy.concatenate((thetas,dk),axis=1)
+
     thetas = numpy.concatenate((ones,thetas))
-    R     = numpy.concatenate((bias, R))
 
     return thetas,R
-
-def E_all(R,thetas):
-    """
-        generates energy of word.
-
-        selects column of R representing word vector of w by computing Rw.
-        w is a one-hot vector.
-
-        this implementation deviates from the paper by already including the bias term
-        within phi.
-
-        then computes vector product of -(theta * phi)
-    """
-
-    R_t = numpy.transpose(R)
-
-    return (-(numpy.dot(R_t,theta)))
 
 def phi(R,w):
     """
@@ -74,24 +84,7 @@ def phi(R,w):
 
     return numpy.dot(R,w)
 
-def E(w,theta,R):
-    """
-        generates energy of word.
-
-        selects column of R representing word vector of w by computing Rw.
-        w is a one-hot vector.
-
-        this implementation deviates from the paper by already including the bias term
-        within phi.
-
-        then computes vector product of -(theta * phi)
-    """
-
-    phi = numpy.dot(R,w)
-
-    return (-(numpy.dot(phi,theta)))[0]
-
-def gradient(R, thetas, freq, wrt, theta_reg_weight=.01, frobenius_reg_weight=.01):
+def get_gradient_funcs():
     """
         finds the gradient of the cost function with respect to parameter specified in wrt
     """
@@ -100,31 +93,31 @@ def gradient(R, thetas, freq, wrt, theta_reg_weight=.01, frobenius_reg_weight=.0
 
         # TODO: regularization
         # TODO: compute sentiment vectors
-        # TODO: make thetas and R shared variables so they can be recomputed for N iterations
 
     # less important:
 
-        # TODO: figure out how to reduce memory consumption
+        # TODO: leverage memmap in numpy to reduce ram usage.
 
-    _theta_reg_weight = T.scalar("theta_reg_weight")
+    _theta_reg_weight     = T.scalar("theta_reg_weight")
     _frobenius_reg_weight = T.scalar("frobenius_reg_weight")
 
-    theta = T.dmatrix('theta')
-    _R = T.dmatrix('R')
-    frequency = T.dmatrix('frequency')
+    theta     = T.fmatrix("theta")
+    _R        = T.fmatrix("_R")
+    frequency = T.fmatrix("frequency")
 
     # obtain energies of word per document
     # row represents current document.
     # col represents word
     # we premptively remove the negative sign (-) because it cancels out.
-    E_w = T.exp(T.dot(theta.T, _R))
+    E_w     = T.dot(theta.T, _R)
+    E_w_exp = T.exp(E_w)
 
     # sum the columns of above matrix together
     # obtains a vector which is the denominator of the softmax function for each doc
-    E_total = T.sum(E_w, 1)
+    E_total = T.sum(E_w_exp, 1)
 
     # compute probabilities for each word in their repsetive document
-    probability = E_w.T / E_total
+    probability = E_w_exp.T / E_total
 
     # take the log of the probability before multiplying by frequency
     log_prob = T.log(probability)
@@ -149,60 +142,73 @@ def gradient(R, thetas, freq, wrt, theta_reg_weight=.01, frobenius_reg_weight=.0
     cost = frobenius_reg + theta_reg + T.sum(weighted_prob)
 
     # compute gradient of each document wrt each element in the specified variable (R or theta)
-    # TODO: splice out bias term when computing gradient of theta
-    if wrt is "R":
-        grad = T.grad(cost, _R)
-    elif wrt is "theta":
-        grad = T.grad(cost, theta)
-    else:
-        print "ERROR: Gradient cannot be computed with respect to %s" % wrt
-        exit(1)
+    grad_wrt_R = theano.gradient.jacobian(cost, _R)
 
-    dcostdR = theano.function([theta, _R, frequency, _theta_reg_weight, _frobenius_reg_weight], grad)
+    grad_wrt_theta = T.grad(cost, theta)
 
-    # leave as is
-    if wrt == "R":
-        return dcostdR(thetas, R, freq, theta_reg_weight, frobenius_reg_weight)
-    else:
-        theta_grad = dcostdR(thetas, R, freq, theta_reg_weight, frobenius_reg_weight)
+    dcostdR     = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight], [cost, grad_wrt_R])
+    dcostdtheta = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight], [cost, grad_wrt_theta])
 
-        # don't want to update the first row of the theta matrix
-        mask = numpy.concatenate((numpy.zeros((1,theta_grad.shape[1])),
-                                  numpy.ones((theta_grad.shape[0]-1,theta_grad.shape[1]))))
+    return dcostdR, dcostdtheta
 
-        return theta_grad * mask
+def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=.0001, theta_reg_weight=.001, frobenius_reg_weight=.001):
 
+    # TODO: works for small data set ~1000 files. needs to be changed to stochastic gradient descent to handle
+    # larger datasets (25000?)
+
+    # theano functions to compute gradients
+    get_dcostdR, get_dcostdtheta = get_gradient_funcs()
+
+    for j in range(iterations):
+
+        # needs more time to converge. so there is a limit to iterations. the idea is to
+        # get to correct the thetas quicker to get R converging.
+        old_cost = None
+        for i in range(100):
+            cost, grad_wrt_R = get_dcostdR(R, thetas, freq, theta_reg_weight, frobenius_reg_weight)
+
+            R += learning_rate * grad_wrt_R
+
+            if old_cost is None:
+                old_cost = cost
+            elif abs(old_cost - cost) <= .001:
+                break
+            else:
+                print "change in cost wrt R: ", abs(old_cost - cost)
+                old_cost = cost
+
+
+        # converges a lot faster. so just wait until it reaches a cost change of zero.
+        old_cost = None
+        while True:
+            cost, grad_wrt_theta = get_dcostdtheta(R, thetas, freq, theta_reg_weight, frobenius_reg_weight)
+
+            # don't want to update the first row of the theta matrix
+            # TODO: move into theano function?
+            mask = numpy.concatenate((numpy.zeros((1,grad_wrt_theta.shape[1])),
+                                      numpy.ones((grad_wrt_theta.shape[0]-1,grad_wrt_theta.shape[1]))))
+            thetas += learning_rate * (grad_wrt_theta * mask)
+
+            if old_cost is None:
+                old_cost = cost
+            elif abs(old_cost - cost) <= .001:
+                break
+            else:
+                print "change in cost wrt theta: ", abs(old_cost - cost)
+                old_cost = cost
 
 if __name__ == "__main__":
 
     # large example. should work!
-    freq = numpy.random.randn(5000,25000)
-    theta,R = create_parameters(50,5000,25000)
+    freq = numpy.random.randint(low=0,high=10,size=(5000,1000))
+    theta,R = create_parameters(50,5000,1000)
 
-    # smaller dev example
-    # freq = numpy.random.randn(2,2)
-    # theta,R = create_parameters (2,2,2)
+    #freq = numpy.random.randint(low=0,high=10,size=(5,5))
+    #theta,R = create_parameters(5,5,5)
 
-    print "R.shape: ", R.shape
-    print "theta.shape: ", theta.shape
+    gradient_ascent(R.astype('float32'), theta.astype('float32'), freq.astype('float32'))
+    # out = gradient(R.astype('float32'), theta.astype('float32'), freq.astype('float32'), "theta")
 
-    init_time = time.time()
-
-    out = gradient(R, theta, freq, "R")
-
-    print "Gradient of R: "
-    print out
-    # print out.shape
-    print "Time elapsed: ", time.time() - init_time
-
-    init_time = time.time()
-
-    out = gradient(R, theta, freq, "theta")
-
-    print "Gradient of theta: "
-    print out
-    # print out.shape
-    print "Time elapsed: ", time.time() - init_time
 
     pass
 
