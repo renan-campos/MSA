@@ -155,6 +155,9 @@ def get_gradient_funcs():
 
 
 def sample_data(thetas, freq, sample_size=600):
+    """
+    Sample columns.
+    """
 
     num_docs = freq.shape[1]
 
@@ -197,6 +200,73 @@ def sample_data(thetas, freq, sample_size=600):
     return theta_samples.astype('float32'), freq_samples.astype('float32'), sample_inds
 
 
+def partition_data(thetas, freq, partition_size=1000):
+    """
+    Partition thetas and freq matrices into smaller matrices of column len partition_size.
+    Indices of original position within thetas and freqs are returned aswell.
+    """
+
+    num_docs = freq.shape[1]
+
+    # indices of columns to select.
+    column_indx = range(0,num_docs)
+
+    start = 0
+    end   = partition_size
+
+    # need these for performing updates
+    partitioned_inds = []
+
+    # partitioned input.
+    theta_partitions = []
+    freq_partitions  = []
+
+    # inplace shuffling of col indices to select
+    random.shuffle(column_indx)
+
+    while True:
+
+        # get partition of indices
+        partition = column_indx[start:end]
+
+        # nothing in partition
+        if len(partition) == 0:
+            break
+
+        theta_partition = None
+        freq_partition  = None
+
+        # select appropriate columns from theta and freq documents and place into partition
+        for i in partition:
+
+            c = thetas[:,i]
+            c = c.reshape(c.shape[0],1)
+
+            # partition theta columns
+            if theta_partition is None:
+                theta_partition = c
+            else:
+                theta_partition = numpy.concatenate((theta_partition,c), axis=1)
+
+            c = freq[:,i]
+            c = c.reshape(c.shape[0],1)
+
+            # partition freq columns
+            if freq_partition is None:
+                freq_partition = c
+            else:
+                freq_partition = numpy.concatenate((freq_partition,c), axis=1)
+
+        partitioned_inds.append(partition)
+        theta_partitions.append(theta_partition.astype('float32'))
+        freq_partitions.append(freq_partition.astype('float32'))
+
+        start = end
+        end += partition_size
+
+    return theta_partitions, freq_partitions, partitioned_inds
+
+
 def update_parameter(thetas, grad_update, sample_inds):
 
     for i, j in zip(sample_inds,range(0,len(sample_inds))):
@@ -206,17 +276,14 @@ def update_parameter(thetas, grad_update, sample_inds):
 
 def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_reg_weight=.001, frobenius_reg_weight=.001):
 
-    R_iterations = 100
+    # adjust as you see fit
+    R_iterations         = 30
+    partition_iterations = 30
+
     converges = lambda x1, x2: abs(x1 - x2) <= .01
 
     # theano functions to compute gradients
     get_dcostdR, get_dcostdtheta = get_gradient_funcs()
-
-    # TODO: i think this method may be bad because you are not really using all training data.
-    # you are just using a sample for each iteration.
-    # i think what should be done is to create a set of partitions
-    # for the set perform alternating maximization on the set
-    #
 
     for i in range(iterations):
 
@@ -227,61 +294,62 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
         old_cost = None
 
         # sample thetas and freq because they correspond to document we are training on.
-        theta_samples, freq_samples, sample_inds = sample_data(thetas, freq)
+        theta_partitions, freq_partitions, inds_partitions = partition_data(thetas, freq)
 
-        for _ in range(iterations):
+        partitions = zip(theta_partitions, freq_partitions, inds_partitions)
 
-            for __ in range(R_iterations):
+        j = 0
 
-                # TODO: change this loop so that we loop over each batch in the partition
-                # update parameters after dcost for each batch
+        for theta_partition, freq_partition, inds_partition in partitions:
 
-                cost, grad_wrt_R = get_dcostdR(R, theta_samples, freq_samples, theta_reg_weight, frobenius_reg_weight)
+            print "partition: {}/{}".format(j,len(theta_partitions))
+            j += 1
 
-                print cost
+            for _ in range(partition_iterations):
 
-                R += learning_rate * grad_wrt_R
+                print "partition iteration: {}".format(_)
 
-                if old_cost is None:
-                    old_cost = cost
-                elif converges(old_cost, cost):
-                    break
-                else:
-                    print "change in cost wrt R: ", abs(old_cost - cost)
-                    old_cost = cost
+                for __ in range(R_iterations):
 
-            grad_update = None
+                    cost, grad_wrt_R = get_dcostdR(R, theta_partition, freq_partition, theta_reg_weight, frobenius_reg_weight)
 
-            # converges a lot faster. so just wait until it reaches a cost change of zero.
-            old_cost = None
-            while True:
+                    R += learning_rate * grad_wrt_R
 
-                # TODO: change this loop so that we loop over each batch in the partition
-                # update parameters after dcost for each batch
+                    if old_cost is None:
+                        old_cost = cost
+                    elif converges(old_cost, cost):
+                        break
+                    else:
+                        # print "change in cost wrt R: ", abs(old_cost - cost)
+                        old_cost = cost
 
-                print "performing ascent on theta..."
+                grad_update = None
 
-                cost, grad_wrt_theta = get_dcostdtheta(R, theta_samples, freq_samples, theta_reg_weight, frobenius_reg_weight)
+                # converges a lot faster. so just wait until it reaches a cost change of zero.
+                old_cost = None
+                while True:
 
-                # don't want to update the first row of the theta matrix
-                # TODO: move into theano function?
-                mask = numpy.concatenate((numpy.zeros((1,grad_wrt_theta.shape[1])),
-                                          numpy.ones((grad_wrt_theta.shape[0]-1,grad_wrt_theta.shape[1]))))
+                    cost, grad_wrt_theta = get_dcostdtheta(R, theta_partition, freq_partition, theta_reg_weight, frobenius_reg_weight)
 
-                grad_update = learning_rate * (grad_wrt_theta * mask)
+                    # don't want to update the first row of the theta matrix
+                    # TODO: move into theano function?
+                    mask = numpy.concatenate((numpy.zeros((1,grad_wrt_theta.shape[1])),
+                                              numpy.ones((grad_wrt_theta.shape[0]-1,grad_wrt_theta.shape[1]))))
 
-                theta_samples += grad_update
+                    grad_update = learning_rate * (grad_wrt_theta * mask)
 
-                if old_cost is None:
-                    old_cost = cost
-                elif converges(old_cost, cost):
-                    break
-                else:
-                    print "change in cost wrt theta: ", abs(old_cost - cost)
-                    old_cost = cost
+                    theta_partition += grad_update
 
-            assert grad_update is not None
-            thetas = update_parameter(thetas, grad_update, sample_inds)
+                    if old_cost is None:
+                        old_cost = cost
+                    elif converges(old_cost, cost):
+                        break
+                    else:
+                        # print "change in cost wrt theta: ", abs(old_cost - cost)
+                        old_cost = cost
+
+                assert grad_update is not None
+                thetas = update_parameter(thetas, grad_update, inds_partition)
 
     return R
 
@@ -311,6 +379,9 @@ if __name__ == "__main__":
     # large example. should work!
 #    freq = numpy.random.randint(low=0,high=10,size=(5,5))
 #    theta,R = create_parameters(5,5,5)
+
+#    freq = numpy.random.randint(low=0,high=10,size=(5000,200))
+#    theta,R = create_parameters(50,5000,200)
 
     freq = numpy.random.randint(low=0,high=10,size=(5000,25000))
     theta,R = create_parameters(50,5000,25000)
