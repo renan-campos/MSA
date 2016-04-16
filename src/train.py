@@ -30,9 +30,9 @@ TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp')
 POS = 1
 NEG = 0
 
-BETA = 3
+BETA = 50
 
-ITER = 5
+ITER = 40
 LAMBDA = 1e-4
 
 # NOTE: Delete pickled vectorizers after changing these
@@ -49,12 +49,14 @@ def main():
   %d unannoteded reviews" % (len(data.train['pos']),
                              len(data.train['neg']),
                              len(data.train['unsup']))
-  #d = list()
-  #for doc in training_set:
-  #  d.append(doc)
-  #  if len(d) > 5:
-  #    break
-  #training_set = d
+  """
+  d = list()
+  for doc in training_set:
+    d.append(doc)
+    if len(d) > 5:
+      break
+  training_set = d
+  """
 
   # Create the vectorizer that builds a vector representation of the data.
   #if not vectorizer.load_vecs():

@@ -138,7 +138,9 @@ def get_gradient_funcs():
     # the frobenius norm is just the summation of the square of all of the elements in a matrix
     # since we are squaring this norm and because addition is commutative we can just do an element
     # wise squaring and thne just add all of teh elements
-    frobenius_reg = _frobenius_reg_weight * T.sum(theano.tensor.pow(_R,2))
+
+    # splicing out first row. authors do not regularize the bias.
+    frobenius_reg = _frobenius_reg_weight * T.sum(theano.tensor.pow(_R[1:,:],2))
 
     # computes total cost for all document
     cost = frobenius_reg + theta_reg + T.sum(weighted_prob)
@@ -281,7 +283,7 @@ def update_parameter(thetas, grad_update, sample_inds):
 
     return thetas
 
-def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_reg_weight=.001, frobenius_reg_weight=.001):
+def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_reg_weight=.01, frobenius_reg_weight=.01):
 
     # adjust as you see fit
     R_iterations         = 30
@@ -340,10 +342,10 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
 
                     # don't want to update the first row of the theta matrix
                     # TODO: move into theano function?
-                    mask = numpy.concatenate((numpy.zeros((1,grad_wrt_theta.shape[1])),
-                                              numpy.ones((grad_wrt_theta.shape[0]-1,grad_wrt_theta.shape[1]))))
+                    grad_wrt_theta = numpy.concatenate((numpy.zeros((1,grad_wrt_theta.shape[1])),
+                                                        grad_wrt_theta[1:,:]))
 
-                    grad_update = learning_rate * (grad_wrt_theta * mask)
+                    grad_update = learning_rate * grad_wrt_theta
 
                     theta_partition += grad_update
 
