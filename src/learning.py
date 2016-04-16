@@ -211,6 +211,8 @@ def partition_data(thetas, freq, partition_size=1000):
     # indices of columns to select.
     column_indx = range(0,num_docs)
 
+#    print column_indx
+
     start = 0
     end   = partition_size
 
@@ -239,6 +241,11 @@ def partition_data(thetas, freq, partition_size=1000):
         # select appropriate columns from theta and freq documents and place into partition
         for i in partition:
 
+#            print "thetas: ", thetas
+#            print "thetas.shape: ", thetas.shape
+
+#            print "i: ", i
+
             c = thetas[:,i]
             c = c.reshape(c.shape[0],1)
 
@@ -258,8 +265,8 @@ def partition_data(thetas, freq, partition_size=1000):
                 freq_partition = numpy.concatenate((freq_partition,c), axis=1)
 
         partitioned_inds.append(partition)
-        theta_partitions.append(theta_partition.astype('float32'))
-        freq_partitions.append(freq_partition.astype('float32'))
+        theta_partitions.append(theta_partition)
+        freq_partitions.append(freq_partition)
 
         start = end
         end += partition_size
@@ -311,7 +318,7 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
 
                 for __ in range(R_iterations):
 
-                    cost, grad_wrt_R = get_dcostdR(R, theta_partition, freq_partition, theta_reg_weight, frobenius_reg_weight)
+                    cost, grad_wrt_R = get_dcostdR(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight)
 
                     R += learning_rate * grad_wrt_R
 
@@ -329,7 +336,7 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
                 old_cost = None
                 while True:
 
-                    cost, grad_wrt_theta = get_dcostdtheta(R, theta_partition, freq_partition, theta_reg_weight, frobenius_reg_weight)
+                    cost, grad_wrt_theta = get_dcostdtheta(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight)
 
                     # don't want to update the first row of the theta matrix
                     # TODO: move into theano function?
