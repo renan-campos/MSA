@@ -49,12 +49,12 @@ def main():
   %d unannoteded reviews" % (len(data.train['pos']),
                              len(data.train['neg']),
                              len(data.train['unsup']))
-  d = list()
-  for doc in training_set:
-    d.append(doc)
-    if len(d) > 5:
-      break
-  training_set = d
+  #d = list()
+  #for doc in training_set:
+  #  d.append(doc)
+  #  if len(d) > 5:
+  #    break
+  #training_set = d
 
   # Create the vectorizer that builds a vector representation of the data.
   #if not vectorizer.load_vecs():
