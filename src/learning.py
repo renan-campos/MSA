@@ -320,6 +320,8 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
 
                 for __ in range(R_iterations):
 
+                    print "R_iteration: {}".format(__)
+
                     cost, grad_wrt_R = get_dcostdR(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight)
 
                     R += learning_rate * grad_wrt_R
@@ -329,10 +331,8 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
                     elif converges(old_cost, cost):
                         break
                     else:
-                        # print "change in cost wrt R: ", abs(old_cost - cost)
+                        print "change in cost wrt R: ", abs(old_cost - cost)
                         old_cost = cost
-
-                grad_update = None
 
                 # converges a lot faster. so just wait until it reaches a cost change of zero.
                 old_cost = None
@@ -340,25 +340,20 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
 
                     cost, grad_wrt_theta = get_dcostdtheta(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight)
 
+                    grad_wrt_theta[1:,:] *= learning_rate
+
                     # don't want to update the first row of the theta matrix
-                    # TODO: move into theano function?
-                    grad_wrt_theta = numpy.concatenate((numpy.zeros((1,grad_wrt_theta.shape[1])),
-                                                        grad_wrt_theta[1:,:]))
-
-                    grad_update = learning_rate * grad_wrt_theta
-
-                    theta_partition += grad_update
+                    theta_partition[1:,:] += grad_wrt_theta[1:,:]
 
                     if old_cost is None:
                         old_cost = cost
                     elif converges(old_cost, cost):
                         break
                     else:
-                        # print "change in cost wrt theta: ", abs(old_cost - cost)
+                        print "change in cost wrt theta: ", abs(old_cost - cost)
                         old_cost = cost
 
-                assert grad_update is not None
-                thetas = update_parameter(thetas, grad_update, inds_partition)
+                thetas = update_parameter(thetas, theta_partition, inds_partition)
 
     return R
 
