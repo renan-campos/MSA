@@ -208,15 +208,16 @@ def get_gradient_funcs():
     # computes total cost for all document
     cost = frobenius_reg + theta_reg + T.sum(weighted_prob) + T.sum(doc_sent_prob)
 
-    # compute gradient of each document wrt each element in the specified variable (R or theta)
+    # compute gradient of each document wrt each element in the specified variable (R or theta or psi)
     grad_wrt_R = theano.gradient.jacobian(cost, _R)
-
+    grad_wrt_psi = theano.gradient.jacobian(cost, psi)
     grad_wrt_theta = T.grad(cost, theta)
 
     dcostdR     = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight, psi, sent_weights], [cost, grad_wrt_R])
     dcostdtheta = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight, psi, sent_weights], [cost, grad_wrt_theta])
+    dcostdpsi   = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight, psi, sent_weights], [cost, grad_wrt_psi])
 
-    return dcostdR, dcostdtheta
+    return dcostdR, dcostdtheta, dcostdpsi
 
 
 def sample_data(thetas, freq, sample_size=600):
@@ -363,12 +364,12 @@ def partition_data(thetas, freq, psi, sent_weights, partition_size=1000):
     return theta_partitions, freq_partitions, psi_partitions, weight_partitions, partitioned_inds
 
 
-def update_parameter(thetas, grad_update, sample_inds):
+def update_parameter(parameter, grad_update, sample_inds):
 
     for i, j in zip(sample_inds,range(0,len(sample_inds))):
-        thetas[:,i] = grad_update[:,j]
+        parameter[:,i] = grad_update[:,j]
 
-    return thetas
+    return parameter
 
 def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, learning_rate=1e-4, theta_reg_weight=.01, frobenius_reg_weight=.01):
 
@@ -379,7 +380,7 @@ def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, learning
     converges = lambda x1, x2: abs(x1 - x2) <= .01
 
     # theano functions to compute gradients
-    get_dcostdR, get_dcostdtheta = get_gradient_funcs()
+    get_dcostdR, get_dcostdtheta, get_dcostdpsi = get_gradient_funcs()
 
     for i in range(iterations):
 
@@ -409,8 +410,11 @@ def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, learning
 
                     print "R_iteration: {}".format(__)
 
-                    cost, grad_wrt_R = get_dcostdR(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition, sent_weight_partition)
+                    cost, grad_wrt_R   = get_dcostdR(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition.astype('float32'), sent_weight_partition.astype('float32'))
+                    cost, grad_wrt_psi = get_dcostdpsi(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition.astype('float32'), sent_weight_partition.astype('float32'))
 
+                    # don't want to update the first 2 rows of psi due to bias terms
+                    psi_partition[2:,:] += learning_rate * grad_wrt_psi[2:,:]
                     R += learning_rate * grad_wrt_R
 
                     if old_cost is None:
@@ -421,16 +425,18 @@ def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, learning
                         print "change in cost wrt R: ", old_cost - cost
                         old_cost = cost
 
+                psi = update_parameter(psi, psi_partition, inds_partition)
+
                 # converges a lot faster. so just wait until it reaches a cost change of zero.
                 old_cost = None
                 for __ in range(R_iterations):
 
-                    cost, grad_wrt_theta = get_dcostdtheta(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition, sent_weight_partition)
+                    cost, grad_wrt_theta = get_dcostdtheta(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition.astype('float32'), sent_weight_partition.astype('float32'))
 
-                    grad_wrt_theta[1:,:] *= learning_rate
+                    grad_wrt_theta[2:,:] *= learning_rate
 
-                    # don't want to update the first row of the theta matrix
-                    theta_partition[1:,:] += grad_wrt_theta[1:,:]
+                    # don't want to update the first two rows of the theta matrix due to bias terms
+                    theta_partition[2:,:] += grad_wrt_theta[2:,:]
 
                     if old_cost is None:
                         old_cost = cost
