@@ -49,14 +49,13 @@ def main():
   %d unannoteded reviews" % (len(data.train['pos']),
                              len(data.train['neg']),
                              len(data.train['unsup']))
-  """
-  d = list()
-  for doc in training_set:
-    d.append(doc)
-    if len(d) > 5:
-      break
-  training_set = d
-  """
+
+  # d = list()
+  # for doc in training_set:
+  #   d.append(doc)
+  #   if len(d) > 50:
+  #     break
+  # training_set = d
 
   # Create the vectorizer that builds a vector representation of the data.
   #if not vectorizer.load_vecs():
@@ -71,9 +70,9 @@ def main():
 
   # Train the R vector
   if actual_vocab_size < VOCAB:
-    thetas,R = learning.create_parameters(BETA,actual_vocab_size,len(training_set))
+    thetas,R,psis = learning.create_parameters(BETA,actual_vocab_size,len(training_set))
   else:
-    thetas,R = learning.create_parameters(BETA, VOCAB, len(training_set))
+    thetas,R,psis = learning.create_parameters(BETA, VOCAB, len(training_set))
 
   """
   print "len(d): ", len(d)
@@ -82,8 +81,11 @@ def main():
   print "freqs.shape: ", freqs.shape
   """
 
+  sentiment_weights = learning.get_sentiment_weights(len(data.train['unsup']), len(data.train['pos']), len(data.train['neg']))
+  # sentiment_weights = sentiment_weights[:, 0:51]
+
   print "learning Vectors..."
-  R = learning.gradient_ascent(R, thetas, freqs, iterations=ITER, learning_rate=LAMBDA)
+  R = learning.gradient_ascent(R.astype('float32'), thetas.astype('float32'), freqs.astype('float32'), psis.astype('float32'), sentiment_weights.astype('float32'), iterations=ITER, learning_rate=LAMBDA)
 
   X = list()
   Y = list()

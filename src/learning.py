@@ -51,7 +51,8 @@ def create_parameters(vect_size,vocab_size,doc_count):
 
     for i in range(vocab_size):
 
-        v = numpy.random.normal(size=(vect_size+1,1), loc=0.0, scale=.01)
+        # adding 2 to account for both bias terms
+        v = numpy.random.normal(size=(vect_size+2,1), loc=0.0, scale=.01)
         v /= numpy.linalg.norm(v)
 
         if R is None:
@@ -59,9 +60,10 @@ def create_parameters(vect_size,vocab_size,doc_count):
         else:
             R = numpy.concatenate((R,v),axis=1)
 
+    ones   = numpy.ones((1,doc_count))
+    zeros  = numpy.zeros((1,doc_count))
     # create theta vector for each doc
     thetas = None
-    ones  = numpy.ones((1,doc_count))
 
     for i in range(doc_count):
 
@@ -73,9 +75,54 @@ def create_parameters(vect_size,vocab_size,doc_count):
         else:
             thetas = numpy.concatenate((thetas,dk),axis=1)
 
-    thetas = numpy.concatenate((ones,thetas))
+    # adding col of 1s and col of 0s to keep bias used for energy and throw out sentiment bias terms
+    thetas = numpy.concatenate((ones,zeros,thetas))
 
-    return thetas,R
+    # create psi vector for each doc
+    psis = None
+
+    for i in range(doc_count):
+
+        psi = numpy.random.normal(size=(vect_size,1), loc=0.0, scale=.01)
+        psi /= numpy.linalg.norm(psi)
+
+        if psis is None:
+            psis = psi
+        else:
+            psis = numpy.concatenate((psis, psi), axis=1)
+
+    # adding col of 0s and col of 1s to keep bias for seniment and throw out bais for energy
+    psis = numpy.concatenate((zeros,ones,psis))
+
+    return thetas,R,psis
+
+def get_sentiment_weights(no_unsup, no_pos, no_neg):
+    """
+        creates column vector for weighting sentiment cost calculation by number of reviews
+        of each rating. Assumes document matrix is constructed first with unspecified reviews,
+        then with posative reviews, and lastly with negative reviews
+    """
+
+    # find weight for each category. unsup weight is set to 0 so that sentiment data will not effect
+    # cost of reviews where no sentiment score is provided
+    unsup_weight = 0.0
+    pos_weight = 1.0/no_pos
+    neg_weight = 1.0/no_neg
+
+    # create vector for each weight
+    weights_unsup = numpy.empty((1, no_unsup))
+    weights_pos   = numpy.empty((1, no_pos))
+    weights_neg   = numpy.empty((1, no_neg))
+
+    # fill vectors with correct weights
+    weights_unsup.fill(unsup_weight)
+    weights_pos.fill(pos_weight)
+    weights_neg.fill(neg_weight)
+
+    # create final weight vector
+    sentiment_weights = numpy.concatenate((weights_unsup, weights_pos, weights_neg), axis=1)
+
+    return sentiment_weights
 
 def phi(R,w):
     """
@@ -103,9 +150,11 @@ def get_gradient_funcs():
     _theta_reg_weight     = T.scalar("theta_reg_weight")
     _frobenius_reg_weight = T.scalar("frobenius_reg_weight")
 
-    theta     = T.fmatrix("theta")
-    _R        = T.fmatrix("_R")
-    frequency = T.fmatrix("frequency")
+    theta        = T.fmatrix("theta")
+    _R           = T.fmatrix("_R")
+    frequency    = T.fmatrix("frequency")
+    psi          = T.fmatrix("psi")
+    sent_weights = T.fmatrix("sent_weights")
 
     # obtain energies of word per document
     # row represents current document.
@@ -133,25 +182,39 @@ def get_gradient_funcs():
     # so what we are calculating is the sum of the square of each vector element
     # since we are doing this for each document and addition is commutative
     # I've brought the regularization term out front.
-    theta_reg = _theta_reg_weight * T.sum(theano.tensor.pow(theta,2))
+    theta_reg = _theta_reg_weight * T.sum(T.pow(theta,2))
 
     # the frobenius norm is just the summation of the square of all of the elements in a matrix
     # since we are squaring this norm and because addition is commutative we can just do an element
     # wise squaring and thne just add all of teh elements
 
     # splicing out first row. authors do not regularize the bias.
-    frobenius_reg = _frobenius_reg_weight * T.sum(theano.tensor.pow(_R[1:,:],2))
+    frobenius_reg = _frobenius_reg_weight * T.sum(T.pow(_R[1:,:],2))
+
+    # apply sentiment weights to each word
+    sentiment = T.dot(psi.T, _R)
+
+    # compute probabilities of each words sentiment using sigmoid
+    sentiment_probability = T.nnet.sigmoid(sentiment)
+
+    # take the log of the probability before multiplying by the frequency of each sentiment
+    log_sent = T.log(sentiment_probability)
+
+    # sum sentiment probabilities to get the probability of a given document's sentiment
+    # weight by the 1/number of same rating (pos/neg) documents. This is 0 for unlabled documents
+    # so that sentiment is ignored when no sentiment data is present
+    doc_sent_prob = sent_weights * T.sum(log_sent, 1)
 
     # computes total cost for all document
-    cost = frobenius_reg + theta_reg + T.sum(weighted_prob)
+    cost = frobenius_reg + theta_reg + T.sum(weighted_prob) + T.sum(doc_sent_prob)
 
     # compute gradient of each document wrt each element in the specified variable (R or theta)
     grad_wrt_R = theano.gradient.jacobian(cost, _R)
 
     grad_wrt_theta = T.grad(cost, theta)
 
-    dcostdR     = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight], [cost, grad_wrt_R])
-    dcostdtheta = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight], [cost, grad_wrt_theta])
+    dcostdR     = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight, psi, sent_weights], [cost, grad_wrt_R])
+    dcostdtheta = theano.function([_R, theta, frequency, _theta_reg_weight, _frobenius_reg_weight, psi, sent_weights], [cost, grad_wrt_theta])
 
     return dcostdR, dcostdtheta
 
@@ -202,7 +265,7 @@ def sample_data(thetas, freq, sample_size=600):
     return theta_samples.astype('float32'), freq_samples.astype('float32'), sample_inds
 
 
-def partition_data(thetas, freq, partition_size=1000):
+def partition_data(thetas, freq, psi, sent_weights, partition_size=1000):
     """
     Partition thetas and freq matrices into smaller matrices of column len partition_size.
     Indices of original position within thetas and freqs are returned aswell.
@@ -222,8 +285,10 @@ def partition_data(thetas, freq, partition_size=1000):
     partitioned_inds = []
 
     # partitioned input.
-    theta_partitions = []
-    freq_partitions  = []
+    theta_partitions  = []
+    freq_partitions   = []
+    psi_partitions    = []
+    weight_partitions = []
 
     # inplace shuffling of col indices to select
     random.shuffle(column_indx)
@@ -237,8 +302,10 @@ def partition_data(thetas, freq, partition_size=1000):
         if len(partition) == 0:
             break
 
-        theta_partition = None
-        freq_partition  = None
+        theta_partition  = None
+        freq_partition   = None
+        psi_partition    = None
+        weight_partition = None
 
         # select appropriate columns from theta and freq documents and place into partition
         for i in partition:
@@ -266,14 +333,34 @@ def partition_data(thetas, freq, partition_size=1000):
             else:
                 freq_partition = numpy.concatenate((freq_partition,c), axis=1)
 
+            c = psi[:,i]
+            c = c.reshape(c.shape[0],1)
+
+            # partition psi columns
+            if psi_partition is None:
+                psi_partition = c
+            else:
+                psi_partition = numpy.concatenate((psi_partition,c), axis=1)
+
+            c = sent_weights[:,i]
+            c = c.reshape(c.shape[0],1)
+
+            # partition weight columns
+            if weight_partition is None:
+                weight_partition = c
+            else:
+                weight_partition = numpy.concatenate((weight_partition,c), axis=1)
+
         partitioned_inds.append(partition)
         theta_partitions.append(theta_partition)
         freq_partitions.append(freq_partition)
+        psi_partitions.append(psi_partition)
+        weight_partitions.append(weight_partition)
 
         start = end
         end += partition_size
 
-    return theta_partitions, freq_partitions, partitioned_inds
+    return theta_partitions, freq_partitions, psi_partitions, weight_partitions, partitioned_inds
 
 
 def update_parameter(thetas, grad_update, sample_inds):
@@ -283,7 +370,7 @@ def update_parameter(thetas, grad_update, sample_inds):
 
     return thetas
 
-def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_reg_weight=.01, frobenius_reg_weight=.01):
+def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, learning_rate=1e-4, theta_reg_weight=.01, frobenius_reg_weight=.01):
 
     # adjust as you see fit
     R_iterations         = 30
@@ -303,13 +390,13 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
         old_cost = None
 
         # sample thetas and freq because they correspond to document we are training on.
-        theta_partitions, freq_partitions, inds_partitions = partition_data(thetas, freq)
+        theta_partitions, freq_partitions, psi_partitions, sent_weight_partitions, inds_partitions = partition_data(thetas, freq, psi, sent_weights, partition_size=50)
 
-        partitions = zip(theta_partitions, freq_partitions, inds_partitions)
+        partitions = zip(theta_partitions, freq_partitions, psi_partitions, sent_weight_partitions, inds_partitions)
 
         j = 0
 
-        for theta_partition, freq_partition, inds_partition in partitions:
+        for theta_partition, freq_partition, psi_partition, sent_weight_partition, inds_partition in partitions:
 
             print "partition: {}/{}".format(j,len(theta_partitions))
             j += 1
@@ -322,7 +409,7 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
 
                     print "R_iteration: {}".format(__)
 
-                    cost, grad_wrt_R = get_dcostdR(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight)
+                    cost, grad_wrt_R = get_dcostdR(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition, sent_weight_partition)
 
                     R += learning_rate * grad_wrt_R
 
@@ -331,14 +418,14 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
                     elif converges(old_cost, cost):
                         break
                     else:
-                        print "change in cost wrt R: ", abs(old_cost - cost)
+                        print "change in cost wrt R: ", old_cost - cost
                         old_cost = cost
 
                 # converges a lot faster. so just wait until it reaches a cost change of zero.
                 old_cost = None
-                while True:
+                for __ in range(R_iterations):
 
-                    cost, grad_wrt_theta = get_dcostdtheta(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight)
+                    cost, grad_wrt_theta = get_dcostdtheta(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition, sent_weight_partition)
 
                     grad_wrt_theta[1:,:] *= learning_rate
 
@@ -350,7 +437,7 @@ def gradient_ascent(R, thetas, freq, iterations=100, learning_rate=1e-4, theta_r
                     elif converges(old_cost, cost):
                         break
                     else:
-                        print "change in cost wrt theta: ", abs(old_cost - cost)
+                        print "change in cost wrt theta: ", old_cost - cost
                         old_cost = cost
 
                 thetas = update_parameter(thetas, theta_partition, inds_partition)
@@ -384,17 +471,28 @@ if __name__ == "__main__":
 #    freq = numpy.random.randint(low=0,high=10,size=(5,5))
 #    theta,R = create_parameters(5,5,5)
 
-#    freq = numpy.random.randint(low=0,high=10,size=(5000,200))
-#    theta,R = create_parameters(50,5000,200)
+    # small corpus example
+    docs = 200
+    words = 5000
+    size = 50
 
-    freq = numpy.random.randint(low=0,high=10,size=(5000,25000))
-    theta,R = create_parameters(50,5000,25000)
+    # tiny example
+    # docs = 25
+    # words = 500
+    # size = 15
 
-    #freq = numpy.random.randint(low=0,high=10,size=(5,5))
-    #theta,R = create_parameters(5,5,5)
+    freq = numpy.random.randint(low=0,high=10,size=(words,docs))
+    sentiment_weights = get_sentiment_weights(docs/2, docs/4, docs/4)
 
-    gradient_ascent(R.astype('float32'), theta.astype('float32'), freq.astype('float32'))
+    theta,R,psis = create_parameters(size,words,docs)
 
+    # freq = numpy.random.randint(low=0,high=10,size=(5000,25000))
+    # theta,R,psi = create_parameters(50,5000,25000)
+
+    # freq = numpy.random.randint(low=0,high=10,size=(5,5))
+    # theta,R = create_parameters(5,5,5)
+
+    gradient_ascent(R.astype('float32'), theta.astype('float32'), freq.astype('float32'), psis.astype('float32'), sentiment_weights.astype('float32'))
 
     pass
 
