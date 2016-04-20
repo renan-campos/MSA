@@ -386,7 +386,7 @@ def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, paramete
         old_cost = None
 
         # sample thetas and freq because they correspond to document we are training on.
-        theta_partitions, freq_partitions, psi_partitions, sent_weight_partitions, inds_partitions = partition_data(thetas, freq, psi, sent_weights, partition_size=50)
+        theta_partitions, freq_partitions, psi_partitions, sent_weight_partitions, inds_partitions = partition_data(thetas, freq, psi, sent_weights, partition_size=partition_size)
 
         partitions = zip(theta_partitions, freq_partitions, psi_partitions, sent_weight_partitions, inds_partitions)
 
@@ -398,7 +398,7 @@ def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, paramete
 
             for _ in range(parameter_iterations):
 
-                print "Epoch: {} | partition {}/{} | iteration {} over R".format(i,j,len(theta_partition), _)
+                print "Epoch: {} | partition {}/{} | iteration {} over R".format(i,j,len(partitions), _)
 
                 cost, grad_wrt_R   = get_dcostdR(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition.astype('float32'), sent_weight_partition.astype('float32'))
                 cost, grad_wrt_psi = get_dcostdpsi(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition.astype('float32'), sent_weight_partition.astype('float32'))
@@ -421,7 +421,7 @@ def gradient_ascent(R, thetas, freq, psi, sent_weights, iterations=100, paramete
             old_cost = None
             for _ in range(parameter_iterations):
 
-                print "Epoch: {} | partition {}/{} | iteration {} over theta".format(i,j,len(theta_partition), _)
+                print "Epoch: {} | partition {}/{} | iteration {} over theta".format(i,j,len(partitions), _)
 
                 cost, grad_wrt_theta = get_dcostdtheta(R.astype('float32'), theta_partition.astype('float32'), freq_partition.astype('float32'), theta_reg_weight, frobenius_reg_weight, psi_partition.astype('float32'), sent_weight_partition.astype('float32'))
 
