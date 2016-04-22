@@ -39,16 +39,20 @@ LAMBDA = 1e-4
 VOCAB  = 5000
 IGNORE = 50
 
-def main():
-  training_set = data.train['unsup'] + data.train['pos'] + data.train['neg']
+def main(t = None):
+  
+  if t:
+    training_set = t['unsup'] + t['pos'] + t['neg']
+  else:
+    training_set = data.train['unsup'] + data.train['pos'] + data.train['neg']
 
   # Print some stats about the training set
-  print "### Training set stats: ###\n\
-  %d positive reviews\n\
-  %d negative reviews\n\
-  %d unannoteded reviews" % (len(data.train['pos']),
-                             len(data.train['neg']),
-                             len(data.train['unsup']))
+#  print "### Training set stats: ###\n\
+#  %d positive reviews\n\
+#  %d negative reviews\n\
+#  %d unannoteded reviews" % (len(data.train['pos']),
+#                             len(data.train['neg']),
+#                             len(data.train['unsup']))
 
   # d = list()
   # for doc in training_set:
@@ -59,8 +63,11 @@ def main():
 
   # Create the vectorizer that builds a vector representation of the data.
   #if not vectorizer.load_vecs():
-  vectorizer.set_vocab(training_set, VOCAB, IGNORE)
-  vectorizer.dump_vecs()
+  if t:
+    vectorizer.load_vecs()
+  else:
+    vectorizer.set_vocab(training_set, VOCAB, IGNORE)
+    vectorizer.dump_vecs()
 
   freqs = vectorizer.bow_vecs(training_set)
 
@@ -69,10 +76,18 @@ def main():
   actual_vocab_size = freqs.shape[0]
 
   # Train the R vector
-  if actual_vocab_size < VOCAB:
-    thetas,R,psis = learning.create_parameters(BETA,actual_vocab_size,len(training_set))
+  if t:
+    with open(os.path.join(TMP_DIR, 'thetas.pickle'), 'rb') as f:
+      thetas = pickle.load(f)
+    with open(os.path.join(TMP_DIR, 'R.pickle'), 'rb') as f:
+      R = pickle.load(f)
+    with open(os.path.join(TMP_DIR, 'psis.pickle'), 'rb') as f:
+      psis = pickle.load(f)
   else:
-    thetas,R,psis = learning.create_parameters(BETA, VOCAB, len(training_set))
+    if actual_vocab_size < VOCAB:
+      thetas,R,psis = learning.create_parameters(BETA,actual_vocab_size,len(training_set))
+    else:
+      thetas,R,psis = learning.create_parameters(BETA, VOCAB, len(training_set))
 
   """
   print "len(d): ", len(d)
@@ -80,11 +95,14 @@ def main():
   print "thetas.shape: ", thetas.shape
   print "freqs.shape: ", freqs.shape
   """
+  if t:
+    sentiment_weights = learning.get_sentiment_weights(len(t['unsup']), len(t['pos']), len(t['neg']))
+  else:
+    sentiment_weights = learning.get_sentiment_weights(len(data.train['unsup']), len(data.train['pos']), len(data.train['neg']))
+    # sentiment_weights = sentiment_weights[:, 0:51]
+    
 
-  sentiment_weights = learning.get_sentiment_weights(len(data.train['unsup']), len(data.train['pos']), len(data.train['neg']))
-  # sentiment_weights = sentiment_weights[:, 0:51]
-
-  print "learning Vectors..."
+  print "learning vectors..."
   R = learning.gradient_ascent(R.astype('float32'), thetas.astype('float32'), freqs.astype('float32'), psis.astype('float32'), sentiment_weights.astype('float32'), iterations=ITER, learning_rate=LAMBDA)
 
   X = list()
@@ -108,9 +126,13 @@ def main():
   print "dumping trained model and vectors..."
   with open(os.path.join(TMP_DIR, 'svm.pickle'), 'wb') as f:
     pickle.dump(clf, f)
-  # Pickle R matrix to file
+  # Pickle theta, R and psis to files
+  with open(os.path.join(TMP_DIR, 'thetas.pickle'), 'wb') as f:
+    pickle.dump(thetas, f)
   with open(os.path.join(TMP_DIR, 'R.pickle'), 'wb') as f:
     pickle.dump(R, f)
+  with open(os.path.join(TMP_DIR, 'psis.pickle'), 'wb') as f:
+    pickle.dump(psis, f)
 
 if __name__ == '__main__':
   main()
