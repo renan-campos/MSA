@@ -26,7 +26,7 @@ TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp')
 POS = 1
 NEG = 0
 
-def main():
+def main(out=sys.stdout):
   test_set = data.test['pos'] + data.test['neg']
 
   # load vectorizer
@@ -99,16 +99,16 @@ def main():
   recall    = len(TP) / float(len(TP)+len(FN))
   f1        = (2*precision * recall) / (precision + recall)
   accuracy  = (len(TP) + len(TN)) / float(len(TP) + len(TN) + len(FP) + len(FN))
-  print "*** Results ***"
-  print "\tTotal test files: %d" % (len(test_set))
-  print "\t(%d positive, %d negative)" % (len(data.test['pos']), len(data.test['neg']))
-  print
-  print "\tTP: %d TN: %d FP: %d FN: %d" % (len(TP), len(TN), len(FP), len(FN)) 
-  print
-  print "\tPrecision: %0.4f" % (precision)
-  print "\tRecall: %0.4f" % (recall)
-  print "\tF1: %0.4f" % (f1)
-  print "\tAccuracy: %0.4f" % (accuracy)
+  print >>out, "*** Results ***"
+  print >>out, "\tTotal test files: %d" % (len(test_set))
+  print >>out, "\t(%d positive, %d negative)" % (len(data.test['pos']), len(data.test['neg']))
+  print >>out, " "
+  print >>out, "\tTP: %d TN: %d FP: %d FN: %d" % (len(TP), len(TN), len(FP), len(FN)) 
+  print >>out, " "
+  print >>out, "\tPrecision: %0.4f" % (precision)
+  print >>out, "\tRecall: %0.4f" % (recall)
+  print >>out, "\tF1: %0.4f" % (f1)
+  print >>out, "\tAccuracy: %0.4f" % (accuracy)
 
 
 if __name__ == "__main__":

@@ -43,9 +43,9 @@ if __name__ == '__main__':
 
 
   print "Batch loop - running train and predict" 
-  for i in range(5):
+  for i in range(125):
 
-    print "****** Batch #%d ******" % (i)
+    print "****** Batch #%d ******" % (i+1)
 
     # Build training set
     t = defaultdict(list)
@@ -59,6 +59,7 @@ if __name__ == '__main__':
     # train
     train.main(t)
 
-    # predict
-    predict.main()
+    with open(os.path.join(TMP_DIR, 'batch_%d.txt' % (i)), 'w') as f:
+      # predict
+      predict.main(f)
 
