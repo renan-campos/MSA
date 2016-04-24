@@ -138,6 +138,9 @@ def main(t = None):
   with open(os.path.join(TMP_DIR, 'psis.pickle'), 'wb') as f:
     pickle.dump(psis, f)
 
+#
+# Main
+#
 if __name__ == '__main__':
   """
     The R Matrix is trained by using cross-validation against a development set.
@@ -168,18 +171,21 @@ if __name__ == '__main__':
 
   for i in range(500):
     dev['pos'].append(data.train['pos'].pop())
-    dev['neg'].append(data.train['pos'].pop())
+    dev['neg'].append(data.train['neg'].pop())
+
+  pos = data.train['pos'][:]
+  neg = data.train['neg'][:]
 
   print "Batch loop - running train and predict" 
-  for i in range(1):
+  for i in range(40):
 
     print "****** Batch #%d ******" % (i+1)
 
     # Build training set
     t = defaultdict(list)
     for j in range(300):
-      t['pos'].append(data.train['pos'].pop())
-      t['neg'].append(data.train['neg'].pop())
+      t['pos'].append(pos.pop())
+      t['neg'].append(neg.pop())
 
     # train
     main(t)

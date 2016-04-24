@@ -71,8 +71,7 @@ if not os.path.isdir(TEST_DIR):
 
 test = list()
 for file in os.listdir(TEST_DIR):
-  print file
   if file.endswith('txt'):
-    test.append(Review(os.path.join(TEST_DIR, type, file)))
+    test.append(Review(os.path.join(TEST_DIR, file)))
 test.sort(key=lambda x: int(x.id))
 
