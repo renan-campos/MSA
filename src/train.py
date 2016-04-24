@@ -17,6 +17,7 @@
 import vectorizer
 import data
 import learning
+import predict
 
 from sklearn import svm
 import numpy as np
@@ -24,6 +25,9 @@ import numpy as np
 import os
 import sys
 import cPickle as pickle
+
+from collections import defaultdict
+from random import shuffle
 
 TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp')
 
@@ -42,9 +46,9 @@ IGNORE = 50
 def main(t = None):
   
   if t:
-    training_set = t['unsup'] + t['pos'] + t['neg']
+    training_set = t['pos'] + t['neg']
   else:
-    training_set = data.train['unsup'] + data.train['pos'] + data.train['neg']
+    training_set = data.train['pos'] + data.train['neg']
 
   # Print some stats about the training set
 #  print "### Training set stats: ###\n\
@@ -96,9 +100,9 @@ def main(t = None):
   print "freqs.shape: ", freqs.shape
   """
   if t:
-    sentiment_weights = learning.get_sentiment_weights(len(t['unsup']), len(t['pos']), len(t['neg']))
+    sentiment_weights = learning.get_sentiment_weights(0, len(t['pos']), len(t['neg']))
   else:
-    sentiment_weights = learning.get_sentiment_weights(len(data.train['unsup']), len(data.train['pos']), len(data.train['neg']))
+    sentiment_weights = learning.get_sentiment_weights(0, len(data.train['pos']), len(data.train['neg']))
     # sentiment_weights = sentiment_weights[:, 0:51]
     
 
@@ -135,4 +139,52 @@ def main(t = None):
     pickle.dump(psis, f)
 
 if __name__ == '__main__':
-  main()
+  """
+    The R Matrix is trained by using cross-validation against a development set.
+  """
+
+  # Shuffling training data
+  shuffle(data.train['pos'])
+  shuffle(data.train['neg'])
+
+  training_set = data.train['pos'] + data.train['neg']
+  
+  print "Creating vectorizer"
+  vectorizer.set_vocab(training_set, VOCAB, IGNORE)
+  vectorizer.dump_vecs()
+  
+  thetas,R,psis = learning.create_parameters(BETA, VOCAB, 600)
+  # Pickle theta, R and psis to files
+  with open(os.path.join(TMP_DIR, 'thetas.pickle'), 'wb') as f:
+    pickle.dump(thetas, f)
+  with open(os.path.join(TMP_DIR, 'R.pickle'), 'wb') as f:
+    pickle.dump(R, f)
+  with open(os.path.join(TMP_DIR, 'psis.pickle'), 'wb') as f:
+    pickle.dump(psis, f)
+
+
+  print "Creating a development set for cross-validation"
+  dev = defaultdict(list)
+
+  for i in range(500):
+    dev['pos'].append(data.train['pos'].pop())
+    dev['neg'].append(data.train['pos'].pop())
+
+  print "Batch loop - running train and predict" 
+  for i in range(1):
+
+    print "****** Batch #%d ******" % (i+1)
+
+    # Build training set
+    t = defaultdict(list)
+    for j in range(300):
+      t['pos'].append(data.train['pos'].pop())
+      t['neg'].append(data.train['neg'].pop())
+
+    # train
+    main(t)
+
+    with open(os.path.join(TMP_DIR, 'batch_%d.txt' % (i)), 'w') as f:
+      # predict
+      predict.main(dev, f)
+

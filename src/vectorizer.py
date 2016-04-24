@@ -139,16 +139,16 @@ def main():
 
   X = list()
   for i in range(5):
-    X.append(data.train['unsup'].pop())
+    X.append(data.train['pos'].pop())
 
   # Set the vocab to be the 5 most frequent words (ignoring first 10)
   set_vocab(X, 20, 5)
 
   
   print VECTORIZER.get_feature_names()
-  print tfidf_bow(data.train['unsup'].pop())
+  print tfidf_bow(data.train['pos'].pop())
 
-  print bow_vec(data.train['unsup'].pop())
+  print bow_vec(data.train['pos'].pop())
 
   print bow_vecs(set(X))
   print set(X)

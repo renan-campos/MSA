@@ -13,7 +13,6 @@
     The train variable is set up as follows:
                 |-> neg   -> set(Reviews)
       train {} -|-> pos   -> set(Reviews)
-                |-> unsup -> set(Reviews)
     
     The test variable is set up as follows:
                |-> neg -> set(Reviews)
@@ -23,8 +22,6 @@
     
     The naming of the review files are set up as follows:
       ID_RANK.txt
-
-    Note: the unsup/ files are not ranked (rank 0). 
 
 """
 
@@ -62,7 +59,7 @@ if not os.path.isdir(TRAIN_DIR):
   \t$ cd data/\n\t$ bash download_data.sh\n")
   sys.exit(1)
 train = defaultdict(list)
-for type in ('pos', 'neg', 'unsup'):
+for type in ('pos', 'neg'):
   for file in os.listdir(os.path.join(TRAIN_DIR, type)):
     if file.endswith('txt'):
      train[type].append(Review(os.path.join(TRAIN_DIR, type, file)))
@@ -72,8 +69,9 @@ if not os.path.isdir(TEST_DIR):
   "ERROR: Testing directory not found. Please do the following:\n\
   \t$ cd data/\n\t$ bash download_data.sh\n")
   sys.exit(1)
-test = defaultdict(list)
-for type in ('pos', 'neg'):
-  for file in os.listdir(os.path.join(TEST_DIR, type)):
-    if file.endswith('txt'):
-     test[type].append(Review(os.path.join(TEST_DIR, type, file)))
+
+test = list()
+for file in TEST_DIR:
+  if file.endswith('txt'):
+    test.append(Review(os.path.join(TEST_DIR, type, file)))
+#TODO: Sort list file based on rank

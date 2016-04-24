@@ -7,8 +7,9 @@
 
  Created By : Connor Cooper
 
- Purpose : Predicts the positive/negative polarity of a movie review using
-           a pre-trained model
+ Purpose : Predicts the positive/negative polarity of the development set, reports
+           precision, recall, f1, and accuracy; also writes the predictions 
+           to files for further error analysis.
 """
 
 import vectorizer
@@ -26,8 +27,8 @@ TMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp')
 POS = 1
 NEG = 0
 
-def main(out=sys.stdout):
-  test_set = data.test['pos'] + data.test['neg']
+def main(dev, out=sys.stdout):
+  test_set = dev['pos'] + dev['neg']
 
   # load vectorizer
   if not vectorizer.load_vecs():
@@ -43,10 +44,10 @@ def main(out=sys.stdout):
   X = list()
   # Y is the target class
   Y = list()
-  for review in data.test['pos']:
+  for review in dev['pos']:
     X.append(learning.phi(R[1:], vectorizer.tfidf_bow(review).T).flatten())
     Y.append(POS)
-  for review in data.test['neg']:
+  for review in dev['neg']:
     X.append(learning.phi(R[1:], vectorizer.tfidf_bow(review).T).flatten())
     Y.append(NEG)
 
@@ -101,7 +102,7 @@ def main(out=sys.stdout):
   accuracy  = (len(TP) + len(TN)) / float(len(TP) + len(TN) + len(FP) + len(FN))
   print >>out, "*** Results ***"
   print >>out, "\tTotal test files: %d" % (len(test_set))
-  print >>out, "\t(%d positive, %d negative)" % (len(data.test['pos']), len(data.test['neg']))
+  print >>out, "\t(%d positive, %d negative)" % (len(dev['pos']), len(dev['neg']))
   print >>out, " "
   print >>out, "\tTP: %d TN: %d FP: %d FN: %d" % (len(TP), len(TN), len(FP), len(FN)) 
   print >>out, " "
@@ -112,4 +113,4 @@ def main(out=sys.stdout):
 
 
 if __name__ == "__main__":
-    main()
+    main(data.train)
