@@ -3,9 +3,9 @@
 
  File Name : test.py
 
- Creation Date : 30-03-2016
+ Creation Date : 24-04-2016
 
- Created By : Connor Cooper
+ Created By : Renan Campos
 
  Purpose : Creates a csv (comma seperated values) file labeling the test set.
 """
