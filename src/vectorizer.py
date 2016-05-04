@@ -28,38 +28,42 @@ import numpy as np
 from tokenizer import tokenize
 
 VECTORIZER = None
-DECTORIZER = None
+CECTORIZER = None
 
 def load_vecs():
   """
     Tries to load the vectorizers from pickled data.
     Returns True on success, false on failure.
   """
+  global VECTORIZER
+  global CECTORIZER
+
   v_file = os.path.join(TMP_DIR, 'vectorizer.pickle')
   d_file = os.path.join(TMP_DIR, 'dectorizer.pickle')
+  f_file = os.path.join(TMP_DIR, 'freq.pickle')
 
   if os.path.isfile(v_file) and os.path.isfile(d_file):
     with open(v_file, 'rb') as f:
       VECTORIZER = pickle.load(f)
     with open(d_file, 'rb') as f:
-      DECTORIZER = pickle.load(f)
+      CECTORIZER = pickle.load(f)
     return True
 
   return False
 
 def dump_vecs():
   """
-    Pickles VECTORIZER and DECTORIZER
+    Pickles VECTORIZER and CECTORIZER
   """
   v_file = os.path.join(TMP_DIR, 'vectorizer.pickle')
   d_file = os.path.join(TMP_DIR, 'dectorizer.pickle')
+  f_file = os.path.join(TMP_DIR, 'freq.pickle')
   
   with open(v_file, 'wb') as f:
     pickle.dump(VECTORIZER, f)
   with open(d_file, 'wb') as f:
-    pickle.dump(DECTORIZER, f)
+    pickle.dump(CECTORIZER, f)
  
-
 
 def set_vocab(docs, N, M):
   """
@@ -72,7 +76,7 @@ def set_vocab(docs, N, M):
   """
   
   global VECTORIZER
-  global DECTORIZER
+  global CECTORIZER
 
   V =  CountVectorizer(preprocessor=(lambda x: x.getText()), tokenizer=tokenize)
 
@@ -92,21 +96,19 @@ def set_vocab(docs, N, M):
 
   # Sort terms by total frequency, and filter.
   vocab = set([(t) for (f,t) in sorted(zip(np.sum(F, axis=0), T))][-(N+M):][:-M])
+  #print vocab
 
   # Build the tfidf vectorizer
   VECTORIZER = TfidfVectorizer(
                                 preprocessor=(lambda x: x.getText()), 
                                 tokenizer=tokenize,
                                 vocabulary=vocab)
-  DECTORIZER = DictVectorizer()
-
+  CECTORIZER = CountVectorizer(
+                                preprocessor=(lambda x: x.getText()), 
+                                tokenizer=tokenize,
+                                vocabulary=vocab)
   VECTORIZER.fit(docs)
-
-  dic = list()
-  for each in vocab:
-    dic.append({'S':each})
-
-  DECTORIZER.fit(dic)
+  CECTORIZER.fit(docs)
 
 
 def tfidf_bow(doc):
@@ -118,39 +120,38 @@ def tfidf_bow(doc):
   if VECTORIZER == None:
     sys.stderr.write("ERROR: Vectorizer not defined... Did you call set_vocab?\n")
     return None
-  return VECTORIZER.transform([doc])
+  return VECTORIZER.transform([doc]).toarray()
 
-def onehot_vecs(doc):
+def bow_vec(doc):
   """
-    Takes a document and returns a list of one-hot vectors.
+    Takes a document and returns a vector of frequencies
   """
-  w = list()
-  for each in tokenize(doc.getText()):
-    w.append({'S':each})
+  return CECTORIZER.transform([doc]).toarray()
 
-  D = DECTORIZER.transform(w)
-
-  return D
-
-
-
+def bow_vecs(docs):
+  """
+    Takes a list of documents and returns a Term x Document matrix.
+  """
+  return CECTORIZER.transform(docs).toarray()
 
 def main():
   import data
 
   X = list()
   for i in range(5):
-    X.append(data.train['unsup'].pop())
+    X.append(data.train['pos'].pop())
 
   # Set the vocab to be the 5 most frequent words (ignoring first 10)
-  set_vocab(X, 5, 10)
+  set_vocab(X, 20, 5)
 
-  w = tfidf_bow(data.train['unsup'].pop())
   
   print VECTORIZER.get_feature_names()
-  print w.toarray()
+  print tfidf_bow(data.train['pos'].pop())
 
-  print onehot_vecs(data.train['unsup'].pop()).toarray()
+  print bow_vec(data.train['pos'].pop())
+
+  print bow_vecs(set(X))
+  print set(X)
 
 if __name__ == '__main__':
   main()
