@@ -27,3 +27,7 @@ Movie Sentiment Analyzer
     # make sure working directory is the cloned directory
     $ python src/test.py
 
+###Writeup
+
+    Final writeup is within the LaTeX document MSA/paper/msa-movie-sentiment.pdf
+
