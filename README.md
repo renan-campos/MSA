@@ -19,11 +19,9 @@ Movie Sentiment Analyzer
 
 ###How to train competition model:
 
-    1. execute following:
-        $ python src/train.py
+    $ python src/train.py
 
 ###How to predict on competition data:
 
-    1. execute following:
-        $ python src/test.py
+    $ python src/test.py
 
