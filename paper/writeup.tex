@@ -63,6 +63,14 @@ The tokenizing and vectorizing step are actually done at the same time, so the v
 
 \subsection{Semantic Features}
 
+$p(D;R,b) = \prod_{d_{k}\in D}^{} p(\hat{\theta}) \prod_{i=1}^{N_{k}} p(w_{i}|\hat{\theta}_{k};R,b)$ 
+
+$p(\hat{\theta})$
+
+$\hat{\theta}_{k}$
+
+$p(w|\theta;R,b) = \frac{exp(\theta^{T}\phi_{w}+b_{w})}{\sum_{w^{'}\in V} exp(\theta^{T}\phi_{w^{'}}+b_{w^{'}})}$
+
 \subsection{Sentiment Features}
 
 \begin{thebibliography}{}
