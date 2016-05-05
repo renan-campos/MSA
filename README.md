@@ -19,9 +19,11 @@ Movie Sentiment Analyzer
 
 ###How to train competition model:
 
+    # make sure working directory is the cloned directory
     $ python src/train.py
 
 ###How to predict on competition data:
 
+    # make sure working directory is the cloned directory
     $ python src/test.py
 
