@@ -1,13 +1,6 @@
 # MSA
 Movie Sentiment Analyzer
 
-###Downloading Data:
-
-    1. Go into MSA/data directory:
-        $ cd <download_dir>/MSA/data
-    2. execute download script:
-        $ bash download_data.sh
-
 ###Dependencies:
 
     - python (2.7.6)
@@ -23,7 +16,6 @@ Movie Sentiment Analyzer
         - Make sure the proper versions of the dependencies are installed, we do not guarantee it will work otherwise.
     2. Clone repository.
         $ git clone https://github.com/renan-campos/MSA.git
-    3. Download data (see above)
 
 ###How to run and evaluate system:
 
