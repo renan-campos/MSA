@@ -17,8 +17,13 @@ Movie Sentiment Analyzer
     2. Clone repository.
         $ git clone https://github.com/renan-campos/MSA.git
 
-###How to run and evaluate system:
+###How to train competition model:
 
     1. execute following:
-        $ python train.py
+        $ python src/train.py
+
+###How to predict on competition data:
+
+    1. execute following:
+        $ python src/test.py
 
