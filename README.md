@@ -8,6 +8,7 @@ Movie Sentiment Analyzer
         - Scipy (0.17.0)
         - Theano (0.9.0)
         - Sklearn (0.17.1)
+        - dill (0.2.5)
 
 ###Installation:
 
@@ -19,12 +20,12 @@ Movie Sentiment Analyzer
 
 ###How to train competition model:
 
-    # make sure working directory is the cloned directory
+    # make sure working directory is the root of the cloned project
     $ python src/train.py
 
 ###How to predict on competition data:
 
-    # make sure working directory is the cloned directory
+    # make sure working directory is the root of the cloned project
     $ python src/test.py
 
 ###Writeup
