@@ -1,8 +1,0 @@
-# Ignore everying in this directory...
-*
-
-# ...except for this file.
-!.gitignore
-# ...and data script
-!download_data.sh
-
