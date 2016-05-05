@@ -11,7 +11,7 @@ Downloading Data:
         $ bash download_data.sh
         ```
 
-External Dependencies:
+Dependencies:
 
     - Numpy (1.11.0)
     - Scipy (0.17.0)
@@ -25,16 +25,11 @@ Installation:
         - We recommend using a virtual environment (virtualenv) along with pip to install dependendencies. Bottomline, make sure dependencies are importable when running python.
         - Make sure the proper versions of the dependencies are installed, we do not guarantee it will work otherwise.
     2. Clone repository.
-        ```
         $ git clone https://github.com/renan-campos/MSA.git
-        ```
     3. Download data (see above)
 
 How to run and evaluate system:
 
     1. execute following:
-        ```
         $ python train.py
-        ```
-
 
