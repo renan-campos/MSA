@@ -1,17 +1,14 @@
 # MSA
 Movie Sentiment Analyzer
 
-Downloading Data:
-    - Go into MSA/data directory:
-        ```
-        $ cd <download_dir>/MSA/data
-        ```
-    - execute download script:
-        ```
-        $ bash download_data.sh
-        ```
+###Downloading Data:
 
-Dependencies:
+    - Go into MSA/data directory:
+        $ cd <download_dir>/MSA/data
+    - execute download script:
+        $ bash download_data.sh
+
+###Dependencies:
 
     - Numpy (1.11.0)
     - Scipy (0.17.0)
@@ -19,7 +16,7 @@ Dependencies:
     - Sklearn (0.17.1)
     - python (2.7.6)
 
-Installation:
+###Installation:
 
     1. Install above python dependencies.
         - We recommend using a virtual environment (virtualenv) along with pip to install dependendencies. Bottomline, make sure dependencies are importable when running python.
@@ -28,7 +25,7 @@ Installation:
         $ git clone https://github.com/renan-campos/MSA.git
     3. Download data (see above)
 
-How to run and evaluate system:
+###How to run and evaluate system:
 
     1. execute following:
         $ python train.py
