@@ -3,18 +3,18 @@ Movie Sentiment Analyzer
 
 ###Downloading Data:
 
-    - Go into MSA/data directory:
+    1. Go into MSA/data directory:
         $ cd <download_dir>/MSA/data
-    - execute download script:
+    2. execute download script:
         $ bash download_data.sh
 
 ###Dependencies:
 
-    - Numpy (1.11.0)
-    - Scipy (0.17.0)
-    - Theano (0.9.0)
-    - Sklearn (0.17.1)
     - python (2.7.6)
+        - Numpy (1.11.0)
+        - Scipy (0.17.0)
+        - Theano (0.9.0)
+        - Sklearn (0.17.1)
 
 ###Installation:
 
