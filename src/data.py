@@ -55,7 +55,7 @@ class Review:
 if not os.path.isdir(TRAIN_DIR):
   sys.stderr.write( \
   "ERROR: Training directory not found. Please do the following:\n\
-  \t$ cd data/\n\t$ bash download_data.sh\n")
+  \t$ mkdir data/train/pos data/train/neg\n")
   sys.exit(1)
 train = defaultdict(list)
 for type in ('pos', 'neg'):
@@ -66,7 +66,7 @@ for type in ('pos', 'neg'):
 if not os.path.isdir(TEST_DIR):
   sys.stderr.write( \
   "ERROR: Testing directory not found. Please do the following:\n\
-  \t$ cd data/\n\t$ bash download_data.sh\n")
+  \t$ mkdir data/test\n")
   sys.exit(1)
 
 test = list()
