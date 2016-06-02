@@ -1,13 +1,6 @@
 # MSA
 Movie Sentiment Analyzer
 
-###Downloading Data:
-
-    1. Go into MSA/data directory:
-        $ cd <download_dir>/MSA/data
-    2. execute download script:
-        $ bash download_data.sh
-
 ###Dependencies:
 
     - python (2.7.6)
@@ -15,6 +8,7 @@ Movie Sentiment Analyzer
         - Scipy (0.17.0)
         - Theano (0.9.0)
         - Sklearn (0.17.1)
+        - dill (0.2.5)
 
 ###Installation:
 
@@ -23,10 +17,18 @@ Movie Sentiment Analyzer
         - Make sure the proper versions of the dependencies are installed, we do not guarantee it will work otherwise.
     2. Clone repository.
         $ git clone https://github.com/renan-campos/MSA.git
-    3. Download data (see above)
 
-###How to run and evaluate system:
+###How to train competition model:
 
-    1. execute following:
-        $ python train.py
+    # make sure working directory is the root of the cloned project
+    $ python src/train.py
+
+###How to predict on competition data:
+
+    # make sure working directory is the root of the cloned project
+    $ python src/test.py
+
+###Writeup
+
+    Final writeup is within the LaTeX document MSA/paper/msa-movie-sentiment.pdf
 
