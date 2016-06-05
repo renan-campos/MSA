@@ -43,6 +43,12 @@ LAMBDA = 1e-4
 VOCAB  = 5000
 IGNORE = 50
 
+# Development and batch size variables
+DEV_SIZE = 500
+BATCHES = 40
+BATCH_SIZE = 600
+
+
 def main(t = None):
   
   if t:
@@ -169,7 +175,7 @@ if __name__ == '__main__':
   print "Creating a development set for cross-validation"
   dev = defaultdict(list)
 
-  for i in range(500):
+  for i in range(DEV_SIZE):
     dev['pos'].append(data.train['pos'].pop())
     dev['neg'].append(data.train['neg'].pop())
 
@@ -177,13 +183,13 @@ if __name__ == '__main__':
   neg = data.train['neg'][:]
 
   print "Batch loop - running train and predict" 
-  for i in range(40):
+  for i in range(BATCHES):
 
     print "****** Batch #%d ******" % (i+1)
 
     # Build training set
     t = defaultdict(list)
-    for j in range(300):
+    for j in range(BATCH_SIZE/2):
       t['pos'].append(pos.pop())
       t['neg'].append(neg.pop())
 
