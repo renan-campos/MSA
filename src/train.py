@@ -44,9 +44,9 @@ VOCAB  = 5000
 IGNORE = 50
 
 # Development and batch size variables
-DEV_SIZE = 500
+DEV_SIZE = 500    # Split evenly between pos/neg
 BATCHES = 40
-BATCH_SIZE = 600
+BATCH_SIZE = 600  # Split evenly between pos/neg
 
 
 def main(t = None):
@@ -175,7 +175,7 @@ if __name__ == '__main__':
   print "Creating a development set for cross-validation"
   dev = defaultdict(list)
 
-  for i in range(DEV_SIZE):
+  for i in range(DEV_SIZE/2):
     dev['pos'].append(data.train['pos'].pop())
     dev['neg'].append(data.train['neg'].pop())
 

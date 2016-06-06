@@ -101,7 +101,7 @@ def main(dev, out=sys.stdout):
   f1        = (2*precision * recall) / (precision + recall)
   accuracy  = (len(TP) + len(TN)) / float(len(TP) + len(TN) + len(FP) + len(FN))
   print >>out, "*** Results ***"
-  print >>out, "\tTotal test files: %d" % (len(test_set))
+  print >>out, "\tTotal dev files: %d" % (len(test_set))
   print >>out, "\t(%d positive, %d negative)" % (len(dev['pos']), len(dev['neg']))
   print >>out, " "
   print >>out, "\tTP: %d TN: %d FP: %d FN: %d" % (len(TP), len(TN), len(FP), len(FN)) 
