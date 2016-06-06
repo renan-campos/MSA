@@ -162,7 +162,7 @@ if __name__ == '__main__':
   vectorizer.set_vocab(training_set, VOCAB, IGNORE)
   vectorizer.dump_vecs()
   
-  thetas,R,psis = learning.create_parameters(BETA, VOCAB, 600)
+  thetas,R,psis = learning.create_parameters(BETA, VOCAB, BATCH_SIZE)
   # Pickle theta, R and psis to files
   with open(os.path.join(TMP_DIR, 'thetas.pickle'), 'wb') as f:
     pickle.dump(thetas, f)
