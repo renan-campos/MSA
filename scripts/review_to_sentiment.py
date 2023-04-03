@@ -15,6 +15,30 @@ import openai
 MODEL = "gpt-3.5-turbo-0301"
 CSV_FILENAME = "sentiment_labels.csv"
 
+def main():
+    setup_openai()
+    args = process_args()
+    files_to_process = get_review_files() - get_already_processed_files()
+    progress_ticker = generate_progress_ticker(len(files_to_process)) if args.progress else None
+
+    # Prepare the output file.
+    if not file_exists(CSV_FILENAME):
+        write_header()
+
+    with open(CSV_FILENAME, "a") as csv_file:
+        for filename in files_to_process:
+            if progress_ticker is not None:
+                next(progress_ticker)
+            try:
+                process_file(filename, csv_file)
+            except KeyboardInterrupt:
+                print("Keyboard interrupt detected. Goodbye")
+                sys.exit(1)
+            except Exception as e:
+                print(f"An exception of type {type(e).__name__} occurred while processing '{filename}': {str(e)}")
+                continue
+        if progress_ticker is not None:
+            next(progress_ticker)
 
 def process_args():
     parser = argparse.ArgumentParser()
@@ -84,8 +108,10 @@ def handle_gpt_exceptions(call):
         For certain exceptions, it will apply exponential backoff and try again.
     """
     num_retries = 10
-    wait_time = 1
+    wait_time = 3
     for _ in range(num_retries):
+            # GPT limits 20 calls per minute. This sleep ensures that limit is not hit.
+        time.sleep(3)
         try:
             response = call()
         except openai.error.RateLimitError:
@@ -103,26 +129,4 @@ class OutOfRetries(Exception):
         return self.message
 
 if __name__ == "__main__":
-    setup_openai()
-    args = process_args()
-    files_to_process = get_review_files() - get_already_processed_files()
-    progress_ticker = generate_progress_ticker(len(files_to_process)) if args.progress else None
-
-    # Prepare the output file.
-    if not file_exists(CSV_FILENAME):
-        write_header()
-
-    with open(CSV_FILENAME, "a") as csv_file:
-        for filename in files_to_process:
-            if progress_ticker is not None:
-                next(progress_ticker)
-            try:
-                process_file(filename, csv_file)
-            except KeyboardInterrupt:
-                print("Keyboard interrupt detected. Goodbye")
-                sys.exit(1)
-            except Exception as e:
-                print(f"An exception of type {type(e).__name__} occurred while processing '{filename}': {str(e)}")
-                continue
-        if progress_ticker is not None:
-            next(progress_ticker)
+    main()
